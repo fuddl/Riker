@@ -1,0 +1,116 @@
+{
+  "images": [
+    {
+  "filename": "iPhone_20pt_2x.png",
+  "idiom": "iphone",
+  "scale": "2x",
+  "size": "20pt"
+},
+    {
+  "filename": "iPhone_20pt_3x.png",
+  "idiom": "iphone",
+  "scale": "3x",
+  "size": "20pt"
+},
+    {
+  "filename": "iPhone_29pt_2x.png",
+  "idiom": "iphone",
+  "scale": "2x",
+  "size": "29pt"
+},
+    {
+  "filename": "iPhone_29pt_3x.png",
+  "idiom": "iphone",
+  "scale": "3x",
+  "size": "29pt"
+},
+    {
+  "filename": "iPhone_40pt_2x.png",
+  "idiom": "iphone",
+  "scale": "2x",
+  "size": "40pt"
+},
+    {
+  "filename": "iPhone_40pt_3x.png",
+  "idiom": "iphone",
+  "scale": "3x",
+  "size": "40pt"
+},
+    {
+  "filename": "iPhone_60pt_2x.png",
+  "idiom": "iphone",
+  "scale": "2x",
+  "size": "60pt"
+},
+    {
+  "filename": "iPhone_60pt_3x.png",
+  "idiom": "iphone",
+  "scale": "3x",
+  "size": "60pt"
+},
+    {
+  "filename": "iPad_20pt_1x.png",
+  "idiom": "ipad",
+  "scale": "1x",
+  "size": "20pt"
+},
+    {
+  "filename": "iPad_20pt_2x.png",
+  "idiom": "ipad",
+  "scale": "2x",
+  "size": "20pt"
+},
+    {
+  "filename": "iPad_29pt_1x.png",
+  "idiom": "ipad",
+  "scale": "1x",
+  "size": "29pt"
+},
+    {
+  "filename": "iPad_29pt_2x.png",
+  "idiom": "ipad",
+  "scale": "2x",
+  "size": "29pt"
+},
+    {
+  "filename": "iPad_40pt_1x.png",
+  "idiom": "ipad",
+  "scale": "1x",
+  "size": "40pt"
+},
+    {
+  "filename": "iPad_40pt_2x.png",
+  "idiom": "ipad",
+  "scale": "2x",
+  "size": "40pt"
+},
+    {
+  "filename": "iPad_76pt_1x.png",
+  "idiom": "ipad",
+  "scale": "1x",
+  "size": "76pt"
+},
+    {
+  "filename": "iPad_76pt_2x.png",
+  "idiom": "ipad",
+  "scale": "2x",
+  "size": "76pt"
+},
+    {
+  "filename": "iPad_83.5pt_2x.png",
+  "idiom": "ipad",
+  "scale": "2x",
+  "size": "83.5pt"
+},
+    {
+  "filename": "iOS_Marketing_1024pt_1x.png",
+  "idiom": "ios",
+  "scale": "1024pt",
+  "size": "Marketing"
+}
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

@@ -72,7 +72,7 @@ struct LibraryView: View {
                     }
                 }
             }
-            .navigationTitle("Library")
+            .listStyle(.plain)
         }
     }
 } 

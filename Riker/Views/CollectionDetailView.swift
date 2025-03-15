@@ -14,11 +14,24 @@ struct CollectionDetailView: View {
                     ZStack(alignment: .top) {
                         // Artwork
                         if let artwork = representative.artwork {
-                            Image(uiImage: artwork.image(at: CGSize(width: UIScreen.main.bounds.width, height: 400)) ?? UIImage())
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(height: 400)
-                                .clipped()
+                            VStack(spacing: 0) {
+                                let artworkImage = Image(uiImage: artwork.image(at: CGSize(width: UIScreen.main.bounds.width, height: 400)) ?? UIImage())
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .clipped()
+                                
+                                ZStack {
+                                    artworkImage
+                                        .frame(height: UIApplication.shared.windows.first?.safeAreaInsets.top, alignment: .topLeading)
+                                        .scaleEffect(x: 1, y: -1)
+                                    artworkImage
+                                        .frame(height: UIApplication.shared.windows.first?.safeAreaInsets.top, alignment: .topLeading)
+                                        .blur(radius: 5)
+                                        .scaleEffect(x: 1, y: -1)
+                                }
+                                
+                                artworkImage
+                            }
                         } else {
                             Image(systemName: collection is MPMediaPlaylist ? "music.note.list" : "music.note")
                                 .resizable()
@@ -48,9 +61,6 @@ struct CollectionDetailView: View {
                                 Text(representative.artist ?? "Unknown Artist")
                                     .foregroundColor(.secondary)
                             }
-                            Text("\(collection.items.count) songs")
-                                .foregroundColor(.secondary)
-                                .padding(.top, 4)
                         }
 
                         Spacer();
@@ -80,6 +90,7 @@ struct CollectionDetailView: View {
                                 Text(item.title ?? "Unknown Track")
                                     .foregroundColor(isCurrentTrack(item) ? .accentColor : .primary)
                                     .fontWeight(isCurrentTrack(item) ? .semibold : .regular)
+                                    .multilineTextAlignment(.leading)
                                 Text(item.artist ?? "Unknown Artist")
                                     .font(.subheadline)
                                     .foregroundColor(isCurrentTrack(item) ? .accentColor.opacity(0.8) : .secondary)

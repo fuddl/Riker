@@ -7,30 +7,34 @@ struct CollectionDetailView: View {
     @ObservedObject private var toastManager = ToastManager.shared
     
     var body: some View {
-        List {
-            // Header with artwork and metadata
-            if let representative = collection.representativeItem {
-                Section {
-                    HStack(alignment: .top, spacing: 16) {
+        ScrollView {
+            VStack(spacing: 0) {
+                // Header with artwork
+                if let representative = collection.representativeItem {
+                    ZStack(alignment: .top) {
                         // Artwork
                         if let artwork = representative.artwork {
-                            Image(uiImage: artwork.image(at: CGSize(width: 120, height: 120)) ?? UIImage())
+                            Image(uiImage: artwork.image(at: CGSize(width: UIScreen.main.bounds.width, height: 400)) ?? UIImage())
                                 .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 120, height: 120)
-                                .cornerRadius(8)
+                                .aspectRatio(contentMode: .fill)
+                                .frame(height: 400)
+                                .clipped()
                         } else {
                             Image(systemName: collection is MPMediaPlaylist ? "music.note.list" : "music.note")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 120, height: 120)
+                                .frame(height: 400)
                                 .padding(24)
                                 .background(Color.gray.opacity(0.2))
-                                .cornerRadius(8)
                         }
                         
-                        // Metadata
-                        VStack(alignment: .leading, spacing: 4) {
+
+                    }
+                    .ignoresSafeArea(edges: .top)
+                    
+                    // Metadata
+                    HStack() {
+                        VStack(alignment: .leading) {
                             if collection is MPMediaPlaylist {
                                 Text(collection.value(forProperty: MPMediaPlaylistPropertyName) as? String ?? "Unknown Playlist")
                                     .font(.title2)
@@ -44,28 +48,28 @@ struct CollectionDetailView: View {
                                 Text(representative.artist ?? "Unknown Artist")
                                     .foregroundColor(.secondary)
                             }
-                            
                             Text("\(collection.items.count) songs")
                                 .foregroundColor(.secondary)
                                 .padding(.top, 4)
-                            
-                            Button(action: {
-                                playerManager.playCollection(collection)
-                                toastManager.show("Playing \(collection is MPMediaPlaylist ? "playlist" : "album")")
-                            }) {
-                                Label("Play", systemImage: "play.fill")
-                            }
-                            .buttonStyle(.bordered)
-                            .tint(.accentColor)
-                            .padding(.top, 8)
                         }
+
+                        Spacer();
+                        
+                        
+                        Button(action: {
+                            playerManager.playCollection(collection)
+                            toastManager.show("Playing \(collection is MPMediaPlaylist ? "playlist" : "album")")
+                        }) {
+                            Label("Play", systemImage: "play.fill")
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.accentColor)
+                        .padding(.top, 8)
                     }
-                    .padding(.vertical, 8)
+                    .padding()
                 }
-            }
-            
-            // Track list
-            Section {
+                
+                // Track list
                 ForEach(collection.items, id: \.persistentID) { item in
                     Button(action: {
                         playerManager.playCollection(collection, startingWith: item)
@@ -93,10 +97,15 @@ struct CollectionDetailView: View {
                                     .foregroundColor(isCurrentTrack(item) ? .accentColor : .secondary)
                             }
                         }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
                     }
+                    Divider()
+                        .padding(.leading)
                 }
             }
         }
+        .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
     }
     

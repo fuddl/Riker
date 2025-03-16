@@ -18,10 +18,16 @@ struct CollectionDetailView: View {
                                 if let uiImage = artwork.image(at: artwork.bounds.size) {
                                     let analysis = uiImage.analyzeFirstRowColors()
                                     if analysis.isConsistent {
-                                        Rectangle()
-                                            .fill(Color(analysis.dominantColor ?? .clear))
-                                            .frame(width: UIScreen.main.bounds.width, height: UIApplication.shared.windows.first?.safeAreaInsets.top)
+                                        // solid color
+                                        GeometryReader { geometry in
+                                            Rectangle()
+                                                .fill(Color(analysis.dominantColor ?? .clear))
+                                                .frame(height: UIScreen.main.bounds.height)
+                                                .position(x: UIScreen.main.bounds.width/2, y: (UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0)/2)
+                                        }
+                                        .frame(height: UIApplication.shared.windows.first?.safeAreaInsets.top)
                                     } else {
+                                        // reflection 
                                         ZStack {
                                             Image(uiImage: uiImage)
                                                 .resizable()

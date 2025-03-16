@@ -15,22 +15,35 @@ struct CollectionDetailView: View {
                         // Artwork
                         if let artwork = representative.artwork {
                             VStack(spacing: 0) {
-                                let artworkImage = Image(uiImage: artwork.image(at: CGSize(width: UIScreen.main.bounds.width, height: 400)) ?? UIImage())
+                                if let uiImage = artwork.image(at: artwork.bounds.size) {
+                                    let analysis = uiImage.analyzeFirstRowColors()
+                                    if analysis.isConsistent {
+                                        Rectangle()
+                                            .fill(Color(analysis.dominantColor ?? .clear))
+                                            .frame(width: UIScreen.main.bounds.width, height: UIApplication.shared.windows.first?.safeAreaInsets.top)
+                                    } else {
+                                        ZStack {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .clipped()
+                                                .frame(height: UIApplication.shared.windows.first?.safeAreaInsets.top, alignment: .topLeading)
+                                                .scaleEffect(x: 1, y: -1)
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .clipped()
+                                                .frame(height: UIApplication.shared.windows.first?.safeAreaInsets.top, alignment: .topLeading)
+                                                .blur(radius: 5)
+                                                .scaleEffect(x: 1, y: -1)
+                                        }
+                                    }
+                                }
+                                
+                                Image(uiImage: artwork.image(at: CGSize(width: UIScreen.main.bounds.width, height: 400)) ?? UIImage())
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                                     .clipped()
-                                
-                                ZStack {
-                                    artworkImage
-                                        .frame(height: UIApplication.shared.windows.first?.safeAreaInsets.top, alignment: .topLeading)
-                                        .scaleEffect(x: 1, y: -1)
-                                    artworkImage
-                                        .frame(height: UIApplication.shared.windows.first?.safeAreaInsets.top, alignment: .topLeading)
-                                        .blur(radius: 5)
-                                        .scaleEffect(x: 1, y: -1)
-                                }
-                                
-                                artworkImage
                             }
                         } else {
                             Image(systemName: collection is MPMediaPlaylist ? "music.note.list" : "music.note")
@@ -128,5 +141,92 @@ struct CollectionDetailView: View {
     
     private func isCurrentTrack(_ item: MPMediaItem) -> Bool {
         return playerManager.currentTrack?.persistentID == item.persistentID
+    }
+}
+
+extension UIImage {
+    func analyzeFirstRowColors() -> (isConsistent: Bool, dominantColor: UIColor?) {
+        guard let cgImage = self.cgImage else { return (false, nil) }
+        
+        let width = cgImage.width
+        let height = cgImage.height
+        
+        guard let provider = cgImage.dataProvider,
+              let data = provider.data,
+              let bytes = CFDataGetBytePtr(data) else {
+            return (false, nil)
+        }
+        
+        // Check bitmap info to determine byte order
+        let alphaInfo = cgImage.alphaInfo
+        let byteOrder = cgImage.bitmapInfo.rawValue & CGBitmapInfo.byteOrderMask.rawValue
+        
+        print("Bitmap info: \(cgImage.bitmapInfo.rawValue)")
+        print("Alpha info: \(alphaInfo.rawValue)")
+        print("Byte order: \(byteOrder)")
+        
+        // Function to get correct color components based on byte order
+        func getColorComponents(from offset: Int) -> (red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
+            if byteOrder == CGBitmapInfo.byteOrder32Little.rawValue {
+                return (bytes[offset + 2], bytes[offset + 1], bytes[offset], bytes[offset + 3])
+            } else {
+                return (bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
+            }
+        }
+        
+        let firstComponents = getColorComponents(from: 0)
+        let firstPixel = (
+            red: CGFloat(firstComponents.red) / 255.0,
+            green: CGFloat(firstComponents.green) / 255.0,
+            blue: CGFloat(firstComponents.blue) / 255.0,
+            alpha: CGFloat(firstComponents.alpha) / 255.0
+        )
+        
+        print("First pixel: R:\(firstPixel.red) G:\(firstPixel.green) B:\(firstPixel.blue) A:\(firstPixel.alpha)")
+        print("Image properties:")
+        print("Width: \(width)")
+        print("Height: \(height)")
+        print("Bits per component: \(cgImage.bitsPerComponent)")
+        print("Bits per pixel: \(cgImage.bitsPerPixel)")
+        print("BytesPerRow: \(cgImage.bytesPerRow)")
+        print("Color space: \(cgImage.colorSpace?.name ?? "unknown" as CFString)")
+        
+        print("\nFirst 20 pixels raw values:")
+        for i in 0..<min(20, width) {
+            let offset = i * 4
+            let components = getColorComponents(from: offset)
+            print("Pixel \(i): [\(components.red), \(components.green), \(components.blue), \(components.alpha)]")
+        }
+        
+        var isConsistent = true
+        let threshold: CGFloat = 0.05
+        
+        for x in 0..<width {
+            let offset = x * 4
+            let components = getColorComponents(from: offset)
+            let red = CGFloat(components.red) / 255.0
+            let green = CGFloat(components.green) / 255.0
+            let blue = CGFloat(components.blue) / 255.0
+            
+            if abs(red - firstPixel.red) > threshold ||
+               abs(green - firstPixel.green) > threshold ||
+               abs(blue - firstPixel.blue) > threshold {
+                print("\nInconsistency found at pixel \(x):")
+                print("Raw bytes: [\(components.red), \(components.green), \(components.blue), \(components.alpha)]")
+                print("Current pixel: R:\(red) G:\(green) B:\(blue)")
+                print("Differences: R:\(abs(red - firstPixel.red)) G:\(abs(green - firstPixel.green)) B:\(abs(blue - firstPixel.blue))")
+                isConsistent = false
+                break
+            }
+        }
+        
+        let dominantColor = UIColor(
+            red: firstPixel.red,
+            green: firstPixel.green,
+            blue: firstPixel.blue,
+            alpha: firstPixel.alpha
+        )
+        
+        return (isConsistent, dominantColor)
     }
 } 

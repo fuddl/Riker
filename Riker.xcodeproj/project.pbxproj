@@ -6,6 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		46BE1D1B2D84A8FC0011C447 /* RikerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D102D84A8FC0011C447 /* RikerApp.swift */; };
+		46BE1D1C2D84A8FC0011C447 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D112D84A8FC0011C447 /* ContentView.swift */; };
+		46BE1D1D2D84A8FC0011C447 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D122D84A8FC0011C447 /* LibraryView.swift */; };
+		46BE1D1E2D84A8FC0011C447 /* PlayerBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D132D84A8FC0011C447 /* PlayerBar.swift */; };
+		46BE1D1F2D84A8FC0011C447 /* SeekBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D142D84A8FC0011C447 /* SeekBar.swift */; };
+		46BE1D202D84A8FC0011C447 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D152D84A8FC0011C447 /* ToastView.swift */; };
+		46BE1D212D84A8FC0011C447 /* MusicPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D162D84A8FC0011C447 /* MusicPlayerManager.swift */; };
+		46BE1D222D84A8FC0011C447 /* ListenBrainzClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D172D84A8FC0011C447 /* ListenBrainzClient.swift */; };
+		46BE1D232D84A8FC0011C447 /* ToastManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D182D84A8FC0011C447 /* ToastManager.swift */; };
+		46BE1D2A2D84B8FC0011C447 /* CollectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D292D84B8FC0011C447 /* CollectionDetailView.swift */; };
+		46FE9C232D8815F400994335 /* Settings.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 46FE9C222D8815F400994335 /* Settings.bundle */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		464AC7322D8498D60093A909 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -40,27 +54,10 @@
 		46BE1D242D84A8FC0011C447 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		46BE1D262D84A8FC0011C447 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		46BE1D292D84B8FC0011C447 /* CollectionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionDetailView.swift; sourceTree = "<group>"; };
+		46FE9C222D8815F400994335 /* Settings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = Settings.bundle; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		46BE1D0D2D84A7FC0011C446 /* Exceptions for "Riker" folder in "Riker" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Riker/Info.plist,
-			);
-			target = 464AC7202D8498D50093A909 /* Riker */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		464AC7232D8498D50093A909 /* Riker */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				46BE1D0D2D84A7FC0011C446 /* Exceptions for "Riker" folder in "Riker" target */,
-			);
-			path = Riker;
-			sourceTree = "<group>";
-		};
 		464AC7342D8498D60093A909 /* RikerTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = RikerTests;
@@ -101,6 +98,7 @@
 		464AC7182D8498D50093A909 = {
 			isa = PBXGroup;
 			children = (
+				46FE9C222D8815F400994335 /* Settings.bundle */,
 				464AC7232D8498D50093A909 /* Riker */,
 				464AC7342D8498D60093A909 /* RikerTests */,
 				464AC73E2D8498D60093A909 /* RikerUITests */,
@@ -277,27 +275,12 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXBuildFile section */
-		46BE1D0F2D84A7FC0011C447 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 46BE1D0E2D84A7FC0011C447 /* Info.plist */; };
-		46BE1D1B2D84A8FC0011C447 /* RikerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D102D84A8FC0011C447 /* RikerApp.swift */; };
-		46BE1D1C2D84A8FC0011C447 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D112D84A8FC0011C447 /* ContentView.swift */; };
-		46BE1D1D2D84A8FC0011C447 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D122D84A8FC0011C447 /* LibraryView.swift */; };
-		46BE1D1E2D84A8FC0011C447 /* PlayerBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D132D84A8FC0011C447 /* PlayerBar.swift */; };
-		46BE1D1F2D84A8FC0011C447 /* SeekBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D142D84A8FC0011C447 /* SeekBar.swift */; };
-		46BE1D202D84A8FC0011C447 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D152D84A8FC0011C447 /* ToastView.swift */; };
-		46BE1D212D84A8FC0011C447 /* MusicPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D162D84A8FC0011C447 /* MusicPlayerManager.swift */; };
-		46BE1D222D84A8FC0011C447 /* ListenBrainzClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D172D84A8FC0011C447 /* ListenBrainzClient.swift */; };
-		46BE1D232D84A8FC0011C447 /* ToastManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D182D84A8FC0011C447 /* ToastManager.swift */; };
-		46BE1D2A2D84B8FC0011C447 /* CollectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D292D84B8FC0011C447 /* CollectionDetailView.swift */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXResourcesBuildPhase section */
 		464AC71F2D8498D50093A909 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46BE1D252D84A8FC0011C447 /* Assets.xcassets in Resources */,
-				46BE1D282D84A8FC0011C447 /* Preview Assets.xcassets in Resources */,
+				46FE9C232D8815F400994335 /* Settings.bundle in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		461D34D52D88BD8000516DCC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46BE1D242D84A8FC0011C447 /* Assets.xcassets */; };
 		46BE1D1B2D84A8FC0011C447 /* RikerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D102D84A8FC0011C447 /* RikerApp.swift */; };
 		46BE1D1C2D84A8FC0011C447 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D112D84A8FC0011C447 /* ContentView.swift */; };
 		46BE1D1D2D84A8FC0011C447 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D122D84A8FC0011C447 /* LibraryView.swift */; };
@@ -280,6 +281,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				461D34D52D88BD8000516DCC /* Assets.xcassets in Resources */,
 				46FE9C232D8815F400994335 /* Settings.bundle in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -470,7 +472,7 @@
 		464AC7462D8498D60093A909 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = RetroAppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -501,7 +503,7 @@
 		464AC7472D8498D60093A909 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = RetroAppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

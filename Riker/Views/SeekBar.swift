@@ -14,42 +14,34 @@ struct SeekBar: View {
     
     var body: some View {
         VStack(spacing: 4) {
-            // Time labels
-            HStack {
-                Text(timeString(for: currentTime))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text(timeString(for: duration))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
             
             // Seek bar
             GeometryReader { geometry in
+                let handleSize: CGFloat = 12
+                let availableWidth = geometry.size.width - handleSize
+                
                 ZStack(alignment: .leading) {
+                    
                     // Background track
-                    Capsule()
+                    Rectangle()
                         .fill(Color.gray.opacity(0.2))
-                        .frame(height: 2)
+                        .frame(height: isDragging ? 21 : 7)
+                        .animation(.easeInOut(duration: 0.2), value: isDragging)
                     
                     // Progress track
-                    Capsule()
+                    Rectangle()
                         .fill(Color.accentColor)
-                        .frame(width: geometry.size.width * progress, height: 2)
-                    
-                    // Knob
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 12, height: 12)
-                        .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
-                        .position(x: geometry.size.width * progress, y: geometry.size.height / 2)
+                        .frame(width: availableWidth * progress, height: isDragging ? 21 : 7)
+                        .animation(.easeInOut(duration: 0.2), value: isDragging)
+                
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 10.5))
+                .frame(height: isDragging ? 21 : 7).animation(.easeInOut(duration: 0.2), value: isDragging)
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
                             isDragging = true
-                            dragProgress = min(max(value.location.x / geometry.size.width, 0), 1)
+                            dragProgress = min(max(value.location.x / availableWidth, 0), 1)
                         }
                         .onEnded { _ in
                             isDragging = false

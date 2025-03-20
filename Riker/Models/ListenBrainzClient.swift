@@ -1,8 +1,10 @@
 import Foundation
 import MediaPlayer
 import SwiftUI
+import UserNotifications
+import UIKit
 
-class ListenBrainzClient {
+class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
     static let shared = ListenBrainzClient()
     private let baseURL = "https://api.listenbrainz.org/1"
     private let userDefaults = UserDefaults.standard
@@ -56,9 +58,18 @@ class ListenBrainzClient {
         set { UserDefaults.standard.set(newValue, forKey: "listenbrainz_token") }
     }
     
-    private init() {
+    private override init() {
+        super.init()
         loadPendingListens()
         registerDefaults()
+        
+        // Set up notification delegate
+        UNUserNotificationCenter.current().delegate = self
+        
+        // Request regular authorization
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            print("ListenBrainz: Notification permission granted: \(granted)")
+        }
     }
     
     private func registerDefaults() {
@@ -117,8 +128,51 @@ class ListenBrainzClient {
             
             if httpResponse.statusCode == 200 {
                 print("ListenBrainz: Listen submitted successfully")
+                
                 DispatchQueue.main.async {
-                    self.toastManager.show("Listen submitted to ListenBrainz")
+                    // Create and show notification with album artwork
+                    let content = UNMutableNotificationContent()
+                    content.title = "Listen Submitted"
+                    content.body = "\(item.title ?? "Unknown Track") by \(item.artist ?? "Unknown Artist")"
+                    
+                    // Add album artwork if available
+                    if let artwork = item.artwork,
+                       let image = artwork.image(at: artwork.bounds.size),
+                       let attachmentURL = self.saveImageTemporarily(image: image) {
+                        do {
+                            let attachment = try UNNotificationAttachment(
+                                identifier: UUID().uuidString,
+                                url: attachmentURL,
+                                options: nil
+                            )
+                            content.attachments = [attachment]
+                        } catch {
+                            print("Failed to attach artwork to notification: \(error)")
+                        }
+                    }
+                    
+                    // Create unique identifier for this notification
+                    let identifier = UUID().uuidString
+                    
+                    // Configure notification
+                    let request = UNNotificationRequest(
+                        identifier: identifier,
+                        content: content,
+                        trigger: nil  // Show immediately
+                    )
+                    
+                    UNUserNotificationCenter.current().add(request) { error in
+                        if let error = error {
+                            print("Failed to schedule notification: \(error)")
+                        } else {
+                            print("ListenBrainz: Notification scheduled successfully")
+                            
+                            // Remove the notification after 2 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier])
+                            }
+                        }
+                    }
                 }
             } else {
                 let responseText = data.flatMap { String(data: $0, encoding: .utf8) } ?? "No response body"
@@ -226,5 +280,35 @@ class ListenBrainzClient {
                 }
             }
         }.resume()
+    }
+    
+    private func saveImageTemporarily(image: UIImage) -> URL? {
+        let fileManager = FileManager.default
+        let tempDirectory = fileManager.temporaryDirectory
+        let imageURL = tempDirectory.appendingPathComponent(UUID().uuidString + ".png")
+        
+        do {
+            if let imageData = image.pngData() {
+                try imageData.write(to: imageURL)
+                return imageURL
+            }
+        } catch {
+            print("Failed to save image temporarily: \(error)")
+        }
+        return nil
+    }
+    
+    // Update the delegate method:
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // Show notification banner and play sound in foreground
+        if #available(iOS 14.0, *) {
+            completionHandler([.banner, .sound])
+        } else {
+            completionHandler([.alert, .sound])
+        }
     }
 } 

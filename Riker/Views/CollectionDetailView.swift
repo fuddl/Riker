@@ -167,10 +167,6 @@ extension UIImage {
         let alphaInfo = cgImage.alphaInfo
         let byteOrder = cgImage.bitmapInfo.rawValue & CGBitmapInfo.byteOrderMask.rawValue
         
-        print("Bitmap info: \(cgImage.bitmapInfo.rawValue)")
-        print("Alpha info: \(alphaInfo.rawValue)")
-        print("Byte order: \(byteOrder)")
-        
         // Function to get correct color components based on byte order
         func getColorComponents(from offset: Int) -> (red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
             if byteOrder == CGBitmapInfo.byteOrder32Little.rawValue {
@@ -188,20 +184,9 @@ extension UIImage {
             alpha: CGFloat(firstComponents.alpha) / 255.0
         )
         
-        print("First pixel: R:\(firstPixel.red) G:\(firstPixel.green) B:\(firstPixel.blue) A:\(firstPixel.alpha)")
-        print("Image properties:")
-        print("Width: \(width)")
-        print("Height: \(height)")
-        print("Bits per component: \(cgImage.bitsPerComponent)")
-        print("Bits per pixel: \(cgImage.bitsPerPixel)")
-        print("BytesPerRow: \(cgImage.bytesPerRow)")
-        print("Color space: \(cgImage.colorSpace?.name ?? "unknown" as CFString)")
-        
-        print("\nFirst 20 pixels raw values:")
         for i in 0..<min(20, width) {
             let offset = i * 4
             let components = getColorComponents(from: offset)
-            print("Pixel \(i): [\(components.red), \(components.green), \(components.blue), \(components.alpha)]")
         }
         
         var isConsistent = true
@@ -217,10 +202,6 @@ extension UIImage {
             if abs(red - firstPixel.red) > threshold ||
                abs(green - firstPixel.green) > threshold ||
                abs(blue - firstPixel.blue) > threshold {
-                print("\nInconsistency found at pixel \(x):")
-                print("Raw bytes: [\(components.red), \(components.green), \(components.blue), \(components.alpha)]")
-                print("Current pixel: R:\(red) G:\(green) B:\(blue)")
-                print("Differences: R:\(abs(red - firstPixel.red)) G:\(abs(green - firstPixel.green)) B:\(abs(blue - firstPixel.blue))")
                 isConsistent = false
                 break
             }

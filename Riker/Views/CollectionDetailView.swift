@@ -1,5 +1,7 @@
 import SwiftUI
 import MediaPlayer
+import CommonCrypto
+import AVFoundation
 
 struct CollectionDetailView: View {
     let collection: MPMediaItemCollection
@@ -133,6 +135,40 @@ struct CollectionDetailView: View {
                     Divider()
                         .padding(.leading)
                 }
+                
+                // Technical Metadata Section
+                Section {
+                    ForEach(collection.items, id: \.persistentID) { item in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(item.title ?? "Unknown Track")
+                                .font(.headline)
+                            
+                            if let assetURL = item.assetURL {
+                                Group {
+                                    Text("Asset URL: \(assetURL.absoluteString)")
+                                    
+                                    // Load asset metadata
+                                    AsyncMetadataView(assetURL: assetURL)
+                                }
+                                .foregroundColor(.secondary)
+                                .font(.caption.monospaced())
+                            } else {
+                                Text("No asset URL available")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
+                            }
+                        }
+                        .padding()
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
+                } header: {
+                    Text("Technical Metadata")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .padding()
+                }
             }
         }
         .ignoresSafeArea(edges: .top)
@@ -215,5 +251,112 @@ extension UIImage {
         )
         
         return (isConsistent, dominantColor)
+    }
+}
+
+// Add this extension for SHA-256 hashing
+extension Data {
+    var sha256Hash: String {
+        return withUnsafeBytes { bytes in
+            var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+            CC_SHA256(bytes.baseAddress, CC_LONG(count), &hash)
+            return hash.map { String(format: "%02x", $0) }.joined()
+        }
+    }
+}
+
+struct AsyncMetadataView: View {
+    let assetURL: URL
+    @State private var assetInfo: AssetInfo?
+    @State private var error: String?
+    
+    var body: some View {
+        Group {
+            if let error = error {
+                Text("Error: \(error)")
+                    .foregroundColor(.red)
+            } else if let info = assetInfo {
+                VStack(alignment: .leading, spacing: 4) {
+                    if !info.metadata.isEmpty {
+                        ForEach(info.metadata.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                            Text("\(key):")
+                            Text(value)
+                        }
+                    }
+                }
+            } else {
+                ProgressView()
+                    .progressViewStyle(.circular)
+            }
+        }
+        .onAppear {
+            loadAssetMetadata()
+        }
+    }
+    
+    @MainActor
+    private func loadAssetMetadata() {
+        let asset = AVAsset(url: assetURL)
+        
+        Task {
+            await loadMetadata(for: asset)
+        }
+    }
+    
+    private func loadMetadata(for asset: AVAsset) async {
+        do {
+            var info = AssetInfo()
+            
+            // Metadata
+            for item in try await asset.load(.metadata) {
+                do {
+                    let value = try await item.load(.value)
+                    let key = item.commonKey?.rawValue ?? (item.key as? String ?? "unknown")
+                    
+                    switch value {
+                    case let string as String:
+                        info.metadata[key] = string
+                    case let number as NSNumber:
+                        info.metadata[key] = number.stringValue
+                    case let date as Date:
+                        info.metadata[key] = ISO8601DateFormatter().string(from: date)
+                    case let data as Data:
+                        info.metadata[key] = "Data(\(data.count) bytes)"
+                    case let array as [Any]:
+                        info.metadata[key] = array.description
+                    case let dict as [String: Any]:
+                        info.metadata[key] = dict.description
+                    default:
+                        info.metadata[key] = String(describing: value)
+                    }
+                } catch {
+                    print("Failed to load metadata value: \(error.localizedDescription)")
+                }
+            }
+            
+            await MainActor.run {
+                self.assetInfo = info
+            }
+        } catch {
+            await MainActor.run {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+}
+
+struct AssetInfo {
+    var metadata: [String: String] = [:]
+}
+
+extension FourCharCode {
+    func toString() -> String {
+        let bytes: [UInt8] = [
+            UInt8((self >> 24) & 0xFF),
+            UInt8((self >> 16) & 0xFF),
+            UInt8((self >> 8) & 0xFF),
+            UInt8(self & 0xFF)
+        ]
+        return String(bytes: bytes, encoding: .utf8) ?? "Unknown"
     }
 } 

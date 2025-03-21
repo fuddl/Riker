@@ -147,8 +147,8 @@ struct CollectionDetailView: View {
                                 Group {
                                     Text("Asset URL: \(assetURL.absoluteString)")
                                     
-                                    // Load asset metadata
-                                    AsyncMetadataView(assetURL: assetURL)
+                                    // Pass both assetURL and the MPMediaItem
+                                    AsyncMetadataView(assetURL: assetURL, mediaItem: item)
                                 }
                                 .foregroundColor(.secondary)
                                 .font(.caption.monospaced())
@@ -267,6 +267,7 @@ extension Data {
 
 struct AsyncMetadataView: View {
     let assetURL: URL
+    let mediaItem: MPMediaItem
     @State private var assetInfo: AssetInfo?
     @State private var error: String?
     
@@ -276,11 +277,25 @@ struct AsyncMetadataView: View {
                 Text("Error: \(error)")
                     .foregroundColor(.red)
             } else if let info = assetInfo {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 12) {
                     if !info.metadata.isEmpty {
-                        ForEach(info.metadata.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
-                            Text("\(key):")
-                            Text(value)
+                        Group {
+                            Text("MusicBrainz Metadata").font(.headline)
+                            VStack(alignment: .leading, spacing: 4) {
+                                ForEach(Array(info.metadata.keys.sorted()), id: \.self) { key in
+                                    if let value = info.metadata[key] {
+                                        MetadataRow(key: key, value: value)
+                                        
+                                        // Add MusicBrainz link if it's a recording ID
+                                        if key == "Track Id" || key == "Recording ID" {
+                                            Link("View on MusicBrainz",
+                                                 destination: URL(string: "https://musicbrainz.org/recording/\(value)")!)
+                                                .foregroundColor(.blue)
+                                                .padding(.top, 4)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -307,32 +322,66 @@ struct AsyncMetadataView: View {
         do {
             var info = AssetInfo()
             
-            // Metadata
-            for item in try await asset.load(.metadata) {
+            // Try to read metadata directly from AVAsset first
+            let metadata = try await asset.load(.metadata)
+            print("Found \(metadata.count) metadata items in AVAsset")
+            
+            // Add all AVFoundation metadata
+            for item in metadata {
                 do {
                     let value = try await item.load(.value)
                     let key = item.commonKey?.rawValue ?? (item.key as? String ?? "unknown")
                     
+                    // Store all metadata first
                     switch value {
                     case let string as String:
                         info.metadata[key] = string
-                    case let number as NSNumber:
-                        info.metadata[key] = number.stringValue
-                    case let date as Date:
-                        info.metadata[key] = ISO8601DateFormatter().string(from: date)
                     case let data as Data:
-                        info.metadata[key] = "Data(\(data.count) bytes)"
-                    case let array as [Any]:
-                        info.metadata[key] = array.description
-                    case let dict as [String: Any]:
-                        info.metadata[key] = dict.description
+                        // Try to interpret data as UTF-8 string
+                        if let string = String(data: data, encoding: .utf8) {
+                            info.metadata[key] = string
+                        } else {
+                            info.metadata[key] = "Data(\(data.count) bytes)"
+                        }
                     default:
                         info.metadata[key] = String(describing: value)
                     }
+                    
+                    // Store the actual key from the metadata item if available
+                    if let actualKey = item.key as? String {
+                        info.metadata[actualKey] = info.metadata[key]
+                    }
+                    
                 } catch {
                     print("Failed to load metadata value: \(error.localizedDescription)")
                 }
             }
+            
+            print("Found metadata: \(info.metadata)")
+            
+            // Process MusicBrainz IDs based on format
+            var musicBrainzInfo: [String: String] = [:]
+            
+            // First check for M4A style iTunes metadata
+            for (key, value) in info.metadata {
+                if key.hasPrefix("com.apple.iTunes.MusicBrainz") {
+                    let cleanKey = key.replacingOccurrences(of: "com.apple.iTunes.MusicBrainz ", with: "")
+                    musicBrainzInfo[cleanKey] = value
+                }
+            }
+            
+            // Then check for MP3 style metadata
+            if let identifier = info.metadata["identifier"],
+               identifier.contains("musicbrainz.org") {
+                if let uuid = identifier.components(separatedBy: "\u{0000}").last {
+                    // Extract just the UUID part by removing the domain
+                    print("Found MusicBrainz ID: \(uuid)")
+                    musicBrainzInfo["Recording ID"] = uuid
+                }
+            }
+            
+            // Update the metadata with processed MusicBrainz info
+            info.metadata = musicBrainzInfo
             
             await MainActor.run {
                 self.assetInfo = info
@@ -340,6 +389,23 @@ struct AsyncMetadataView: View {
         } catch {
             await MainActor.run {
                 self.error = error.localizedDescription
+            }
+        }
+    }
+}
+
+struct MetadataRow: View {
+    let key: String
+    let value: String?
+    
+    var body: some View {
+        if let value = value {
+            HStack(alignment: .top) {
+                Text(key)
+                    .foregroundColor(.secondary)
+                    .frame(width: 100, alignment: .leading)
+                Text(value)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -357,6 +423,7 @@ extension FourCharCode {
             UInt8((self >> 8) & 0xFF),
             UInt8(self & 0xFF)
         ]
-        return String(bytes: bytes, encoding: .utf8) ?? "Unknown"
+        return String(bytes: bytes, encoding: .utf8) ?? String(format: "%08x", self)
     }
 } 
+

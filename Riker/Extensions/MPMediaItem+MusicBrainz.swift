@@ -131,6 +131,19 @@ extension MPMediaItem {
                 }
             }
             
+            for item in commonMetadata {
+                do {
+                    let value = try await item.load(.value)
+                    if let data = value as? Data,
+                       let string = String(data: data, encoding: .utf8),
+                       string.contains("musicbrainz.org"),
+                       let uuid = string.components(separatedBy: "\u{0000}").last {
+                        musicBrainzInfo["Track Id"] = uuid
+                    }
+                } catch {
+                    print("Failed to load metadata value: \(error.localizedDescription)")
+                }
+            }
             
             return MusicBrainzMetadata(
                 recordingId: musicBrainzInfo["Track Id"],  // This is the recording ID in M4A files

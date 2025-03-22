@@ -121,7 +121,7 @@ struct CollectionDetailView: View {
                                     .font(.subheadline)
                                     .foregroundColor(isCurrentTrack(item) ? .accentColor.opacity(0.8) : .secondary)
                                 if let recordingId = metadataByTrack[item.persistentID]?.recordingId ?? item.musicbrainz.recordingId {
-                                    Link("MusicBrainz: \(recordingId)", 
+                                    Link(recordingId, 
                                          destination: URL(string: "https://musicbrainz.org/recording/\(recordingId)")!)
                                         .font(.caption2)
                                         .foregroundColor(.secondary.opacity(0.8))

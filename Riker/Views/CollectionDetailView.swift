@@ -324,7 +324,12 @@ struct AsyncMetadataView: View {
             
             // Try to read metadata directly from AVAsset first
             let metadata = try await asset.load(.metadata)
-            print("Found \(metadata.count) metadata items in AVAsset")
+            
+            // Create an array to hold dictionaries for each item.
+            var metadataArray: [[String: Any]] = []
+            
+            // Process MusicBrainz IDs based on format
+            var musicBrainzInfo: [String: String] = [:]
             
             // Add all AVFoundation metadata
             for item in metadata {
@@ -356,12 +361,26 @@ struct AsyncMetadataView: View {
                     print("Failed to load metadata value: \(error.localizedDescription)")
                 }
             }
-            
-            print("Found metadata: \(info.metadata)")
-            
-            // Process MusicBrainz IDs based on format
-            var musicBrainzInfo: [String: String] = [:]
-            
+
+            let id3MetadataItems = try await asset.loadMetadata(for: .id3Metadata)
+
+
+            for item in id3MetadataItems {
+               
+                // Include extraAttributes if available.
+                if (item.key as! String == "TXXX") {
+                    if let extras = try await item.load(.extraAttributes)  {
+                        if let extraKey = extras[AVMetadataExtraAttributeKey.info] as? String {
+                            if (extraKey.hasPrefix("MusicBrainz ")) {
+                                musicBrainzInfo[extraKey.replacingOccurrences(of: "MusicBrainz ", with: "")] = try await item.load(.stringValue)  ?? "<non-string value>";
+                            }
+                        }
+                    }
+                }
+                  
+                
+            }
+
             // First check for M4A style iTunes metadata
             for (key, value) in info.metadata {
                 if key.hasPrefix("com.apple.iTunes.MusicBrainz") {
@@ -369,17 +388,7 @@ struct AsyncMetadataView: View {
                     musicBrainzInfo[cleanKey] = value
                 }
             }
-            
-            // Then check for MP3 style metadata
-            if let identifier = info.metadata["identifier"],
-               identifier.contains("musicbrainz.org") {
-                if let uuid = identifier.components(separatedBy: "\u{0000}").last {
-                    // Extract just the UUID part by removing the domain
-                    print("Found MusicBrainz ID: \(uuid)")
-                    musicBrainzInfo["Recording ID"] = uuid
-                }
-            }
-            
+                        
             // Update the metadata with processed MusicBrainz info
             info.metadata = musicBrainzInfo
             

@@ -7,6 +7,11 @@ struct CollectionDetailView: View {
     let collection: MPMediaItemCollection
     @ObservedObject private var playerManager = MusicPlayerManager.shared
     @ObservedObject private var toastManager = ToastManager.shared
+    @State private var metadataByTrack: [UInt64: MusicBrainzMetadata] = [:]
+    
+    init(collection: MPMediaItemCollection) {
+        self.collection = collection
+    }
     
     var body: some View {
         ScrollView {
@@ -115,6 +120,12 @@ struct CollectionDetailView: View {
                                 Text(item.artist ?? "Unknown Artist")
                                     .font(.subheadline)
                                     .foregroundColor(isCurrentTrack(item) ? .accentColor.opacity(0.8) : .secondary)
+                                if let recordingId = metadataByTrack[item.persistentID]?.recordingId ?? item.musicbrainz.recordingId {
+                                    Link("MusicBrainz: \(recordingId)", 
+                                         destination: URL(string: "https://musicbrainz.org/recording/\(recordingId)")!)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary.opacity(0.8))
+                                }
                             }
                             
                             Spacer()
@@ -144,14 +155,17 @@ struct CollectionDetailView: View {
                                 .font(.headline)
                             
                             if let assetURL = item.assetURL {
-                                Group {
-                                    Text("Asset URL: \(assetURL.absoluteString)")
-                                    
-                                    // Pass both assetURL and the MPMediaItem
-                                    AsyncMetadataView(assetURL: assetURL, mediaItem: item)
+                                Text("Asset URL: \(assetURL.absoluteString)")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption.monospaced())
+                                
+                                let metadata = metadataByTrack[item.persistentID] ?? item.musicbrainz
+                                if !metadata.isEmpty {
+                                    MusicBrainzMetadataView(metadata: metadata)
+                                } else {
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
                                 }
-                                .foregroundColor(.secondary)
-                                .font(.caption.monospaced())
                             } else {
                                 Text("No asset URL available")
                                     .foregroundColor(.secondary)
@@ -173,6 +187,18 @@ struct CollectionDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Trigger loading for all items
+            for item in collection.items {
+                _ = item.musicbrainz
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .musicBrainzMetadataDidUpdate)) { notification in
+            if let updatedId = notification.object as? UInt64,
+               let item = collection.items.first(where: { $0.persistentID == updatedId }) {
+                metadataByTrack[updatedId] = item.musicbrainz
+            }
+        }
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -265,139 +291,57 @@ extension Data {
     }
 }
 
-struct AsyncMetadataView: View {
-    let assetURL: URL
-    let mediaItem: MPMediaItem
-    @State private var assetInfo: AssetInfo?
-    @State private var error: String?
+struct MusicBrainzMetadataView: View {
+    let metadata: MusicBrainzMetadata
     
     var body: some View {
-        Group {
-            if let error = error {
-                Text("Error: \(error)")
-                    .foregroundColor(.red)
-            } else if let info = assetInfo {
-                VStack(alignment: .leading, spacing: 12) {
-                    if !info.metadata.isEmpty {
-                        Group {
-                            Text("MusicBrainz Metadata").font(.headline)
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(Array(info.metadata.keys.sorted()), id: \.self) { key in
-                                    if let value = info.metadata[key] {
-                                        MetadataRow(key: key, value: value)
-                                        
-                                        // Add MusicBrainz link if it's a recording ID
-                                        if key == "Track Id" || key == "Recording ID" {
-                                            Link("View on MusicBrainz",
-                                                 destination: URL(string: "https://musicbrainz.org/recording/\(value)")!)
-                                                .foregroundColor(.blue)
-                                                .padding(.top, 4)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                ProgressView()
-                    .progressViewStyle(.circular)
-            }
-        }
-        .onAppear {
-            loadAssetMetadata()
-        }
-    }
-    
-    @MainActor
-    private func loadAssetMetadata() {
-        let asset = AVAsset(url: assetURL)
-        
-        Task {
-            await loadMetadata(for: asset)
-        }
-    }
-    
-    private func loadMetadata(for asset: AVAsset) async {
-        do {
-            var info = AssetInfo()
+        VStack(alignment: .leading, spacing: 4) {
+            Text("MusicBrainz IDs")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .padding(.top, 4)
             
-            // Try to read metadata directly from AVAsset first
-            let metadata = try await asset.load(.metadata)
-            
-            // Create an array to hold dictionaries for each item.
-            var metadataArray: [[String: Any]] = []
-            
-            // Process MusicBrainz IDs based on format
-            var musicBrainzInfo: [String: String] = [:]
-            
-            // Add all AVFoundation metadata
-            for item in metadata {
-                do {
-                    let value = try await item.load(.value)
-                    let key = item.commonKey?.rawValue ?? (item.key as? String ?? "unknown")
-                    
-                    // Store all metadata first
-                    switch value {
-                    case let string as String:
-                        info.metadata[key] = string
-                    case let data as Data:
-                        // Try to interpret data as UTF-8 string
-                        if let string = String(data: data, encoding: .utf8) {
-                            info.metadata[key] = string
-                        } else {
-                            info.metadata[key] = "Data(\(data.count) bytes)"
-                        }
-                    default:
-                        info.metadata[key] = String(describing: value)
-                    }
-                    
-                    // Store the actual key from the metadata item if available
-                    if let actualKey = item.key as? String {
-                        info.metadata[actualKey] = info.metadata[key]
-                    }
-                    
-                } catch {
-                    print("Failed to load metadata value: \(error.localizedDescription)")
-                }
+            if let recordingId = metadata.recordingId {
+                MetadataRow(key: "Recording", value: recordingId)
+                Link("View Recording", destination: URL(string: "https://musicbrainz.org/recording/\(recordingId)")!)
+                    .font(.caption)
+                    .foregroundColor(.blue)
             }
-
-            let id3MetadataItems = try await asset.loadMetadata(for: .id3Metadata)
-
-
-            for item in id3MetadataItems {
-               
-                // Include extraAttributes if available.
-                if (item.key as! String == "TXXX") {
-                    if let extras = try await item.load(.extraAttributes)  {
-                        if let extraKey = extras[AVMetadataExtraAttributeKey.info] as? String {
-                            if (extraKey.hasPrefix("MusicBrainz ")) {
-                                musicBrainzInfo[extraKey.replacingOccurrences(of: "MusicBrainz ", with: "")] = try await item.load(.stringValue)  ?? "<non-string value>";
-                            }
-                        }
-                    }
-                }
-                  
-                
-            }
-
-            // First check for M4A style iTunes metadata
-            for (key, value) in info.metadata {
-                if key.hasPrefix("com.apple.iTunes.MusicBrainz") {
-                    let cleanKey = key.replacingOccurrences(of: "com.apple.iTunes.MusicBrainz ", with: "")
-                    musicBrainzInfo[cleanKey] = value
-                }
-            }
-                        
-            // Update the metadata with processed MusicBrainz info
-            info.metadata = musicBrainzInfo
             
-            await MainActor.run {
-                self.assetInfo = info
+            if let artistId = metadata.artistId {
+                MetadataRow(key: "Artist", value: artistId)
+                Link("View Artist", destination: URL(string: "https://musicbrainz.org/artist/\(artistId)")!)
+                    .font(.caption)
+                    .foregroundColor(.blue)
             }
-        } catch {
-            await MainActor.run {
-                self.error = error.localizedDescription
+            
+            if let releaseId = metadata.releaseId {
+                MetadataRow(key: "Release", value: releaseId)
+                Link("View Release", destination: URL(string: "https://musicbrainz.org/release/\(releaseId)")!)
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+            
+            if let releaseGroupId = metadata.releaseGroupId {
+                MetadataRow(key: "Release Group", value: releaseGroupId)
+                Link("View Release Group", destination: URL(string: "https://musicbrainz.org/release-group/\(releaseGroupId)")!)
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+            
+            if let workId = metadata.workId {
+                MetadataRow(key: "Work", value: workId)
+                Link("View Work", destination: URL(string: "https://musicbrainz.org/work/\(workId)")!)
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+            
+            if let acousticId = metadata.acousticId {
+                MetadataRow(key: "AcousticID", value: acousticId)
+            }
+            
+            if let originalYear = metadata.originalYear {
+                MetadataRow(key: "Original Year", value: originalYear)
             }
         }
     }
@@ -434,5 +378,4 @@ extension FourCharCode {
         ]
         return String(bytes: bytes, encoding: .utf8) ?? String(format: "%08x", self)
     }
-} 
-
+}

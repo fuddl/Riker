@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		461D34D52D88BD8000516DCC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46BE1D242D84A8FC0011C447 /* Assets.xcassets */; };
+		4621E0022D8F4219000D3D2D /* MusicBrainzClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4621E0012D8F4217000D3D2D /* MusicBrainzClient.swift */; };
+		4621E0042D8F425F000D3D2D /* MusicBrainzReleaseInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4621E0032D8F4245000D3D2D /* MusicBrainzReleaseInfoView.swift */; };
+		4621E00C2D8F465B000D3D2D /* MetadataRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4621E00B2D8F4658000D3D2D /* MetadataRow.swift */; };
 		46BE1D1B2D84A8FC0011C447 /* RikerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D102D84A8FC0011C447 /* RikerApp.swift */; };
 		46BE1D1C2D84A8FC0011C447 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D112D84A8FC0011C447 /* ContentView.swift */; };
 		46BE1D1D2D84A8FC0011C447 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D122D84A8FC0011C447 /* LibraryView.swift */; };
@@ -39,6 +42,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4621E0012D8F4217000D3D2D /* MusicBrainzClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBrainzClient.swift; sourceTree = "<group>"; };
+		4621E0032D8F4245000D3D2D /* MusicBrainzReleaseInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBrainzReleaseInfoView.swift; sourceTree = "<group>"; };
+		4621E00B2D8F4658000D3D2D /* MetadataRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataRow.swift; sourceTree = "<group>"; };
 		464AC7212D8498D50093A909 /* Riker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Riker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		464AC7312D8498D60093A909 /* RikerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RikerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		464AC73B2D8498D60093A909 /* RikerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RikerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -59,6 +65,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		4621DFF12D8EC43E000D3D2D /* Extensions */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Extensions;
+			sourceTree = "<group>";
+		};
 		464AC7342D8498D60093A909 /* RikerTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = RikerTests;
@@ -120,6 +131,7 @@
 		464AC7232D8498D50093A909 /* Riker */ = {
 			isa = PBXGroup;
 			children = (
+				4621DFF12D8EC43E000D3D2D /* Extensions */,
 				46BE1D192D84A8FC0011C447 /* Models */,
 				46BE1D1A2D84A8FC0011C447 /* Views */,
 				46BE1D102D84A8FC0011C447 /* RikerApp.swift */,
@@ -134,6 +146,7 @@
 		46BE1D192D84A8FC0011C447 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				4621E0012D8F4217000D3D2D /* MusicBrainzClient.swift */,
 				46BE1D162D84A8FC0011C447 /* MusicPlayerManager.swift */,
 				46BE1D172D84A8FC0011C447 /* ListenBrainzClient.swift */,
 				46BE1D182D84A8FC0011C447 /* ToastManager.swift */,
@@ -144,6 +157,8 @@
 		46BE1D1A2D84A8FC0011C447 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4621E00B2D8F4658000D3D2D /* MetadataRow.swift */,
+				4621E0032D8F4245000D3D2D /* MusicBrainzReleaseInfoView.swift */,
 				46BE1D122D84A8FC0011C447 /* LibraryView.swift */,
 				46BE1D132D84A8FC0011C447 /* PlayerBar.swift */,
 				46BE1D142D84A8FC0011C447 /* SeekBar.swift */,
@@ -177,7 +192,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				464AC7232D8498D50093A909 /* Riker */,
+				4621DFF12D8EC43E000D3D2D /* Extensions */,
 			);
 			name = Riker;
 			packageProductDependencies = (
@@ -199,9 +214,6 @@
 			dependencies = (
 				464AC7332D8498D60093A909 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				464AC7342D8498D60093A909 /* RikerTests */,
-			);
 			name = RikerTests;
 			packageProductDependencies = (
 			);
@@ -221,9 +233,6 @@
 			);
 			dependencies = (
 				464AC73D2D8498D60093A909 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				464AC73E2D8498D60093A909 /* RikerUITests */,
 			);
 			name = RikerUITests;
 			packageProductDependencies = (
@@ -263,7 +272,6 @@
 				Base,
 			);
 			mainGroup = 464AC7182D8498D50093A909;
-			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 464AC7222D8498D50093A909 /* Products */;
 			projectDirPath = "";
@@ -307,8 +315,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4621E0022D8F4219000D3D2D /* MusicBrainzClient.swift in Sources */,
+				4621E0042D8F425F000D3D2D /* MusicBrainzReleaseInfoView.swift in Sources */,
 				46BE1D1B2D84A8FC0011C447 /* RikerApp.swift in Sources */,
 				46BE1D1C2D84A8FC0011C447 /* ContentView.swift in Sources */,
+				4621E00C2D8F465B000D3D2D /* MetadataRow.swift in Sources */,
 				46BE1D1D2D84A8FC0011C447 /* LibraryView.swift in Sources */,
 				46BE1D1E2D84A8FC0011C447 /* PlayerBar.swift in Sources */,
 				46BE1D1F2D84A8FC0011C447 /* SeekBar.swift in Sources */,
@@ -486,7 +497,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -517,7 +528,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

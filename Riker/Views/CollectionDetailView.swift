@@ -8,6 +8,9 @@ struct CollectionDetailView: View {
     @ObservedObject private var playerManager = MusicPlayerManager.shared
     @ObservedObject private var toastManager = ToastManager.shared
     @State private var metadataByTrack: [UInt64: MusicBrainzMetadata] = [:]
+    @State private var releaseGroup: MusicBrainzClient.ReleaseGroup?
+    @State private var release: MusicBrainzClient.Release?
+    @State private var isLoadingReleaseInfo = false
     
     init(collection: MPMediaItemCollection) {
         self.collection = collection
@@ -66,8 +69,6 @@ struct CollectionDetailView: View {
                                 .padding(24)
                                 .background(Color.gray.opacity(0.2))
                         }
-                        
-
                     }
                     .ignoresSafeArea(edges: .top)
                     
@@ -90,7 +91,6 @@ struct CollectionDetailView: View {
                         }
 
                         Spacer();
-                        
                         
                         Button(action: {
                             playerManager.playCollection(collection)
@@ -147,41 +147,20 @@ struct CollectionDetailView: View {
                         .padding(.leading)
                 }
                 
-                // Technical Metadata Section
-                Section {
-                    ForEach(collection.items, id: \.persistentID) { item in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(item.title ?? "Unknown Track")
-                                .font(.headline)
-                            
-                            if let assetURL = item.assetURL {
-                                Text("Asset URL: \(assetURL.absoluteString)")
-                                    .foregroundColor(.secondary)
-                                    .font(.caption.monospaced())
-                                
-                                let metadata = metadataByTrack[item.persistentID] ?? item.musicbrainz
-                                if !metadata.isEmpty {
-                                    MusicBrainzMetadataView(metadata: metadata)
-                                } else {
-                                    ProgressView()
-                                        .progressViewStyle(.circular)
-                                }
-                            } else {
-                                Text("No asset URL available")
-                                    .foregroundColor(.secondary)
-                                    .font(.caption)
-                            }
-                        }
-                        .padding()
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(8)
-                        .padding(.horizontal)
+                // Release Information Section
+                if !collection.items.isEmpty {
+                    Section {
+                        MusicBrainzReleaseInfoView(
+                            releaseGroup: releaseGroup,
+                            release: release,
+                            isLoading: isLoadingReleaseInfo
+                        )
+                    } header: {
+                        Text("Release Information")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .padding()
                     }
-                } header: {
-                    Text("Technical Metadata")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .padding()
                 }
             }
         }
@@ -192,16 +171,21 @@ struct CollectionDetailView: View {
             for item in collection.items {
                 _ = item.musicbrainz
             }
+            
+            // Load release information if all tracks have the same release group ID
+            loadReleaseInformation()
         }
         .onReceive(NotificationCenter.default.publisher(for: .musicBrainzMetadataDidUpdate)) { notification in
             if let updatedId = notification.object as? UInt64,
                let item = collection.items.first(where: { $0.persistentID == updatedId }) {
                 metadataByTrack[updatedId] = item.musicbrainz
+                // Reload release information when metadata is updated
+                loadReleaseInformation()
             }
         }
     }
     
-    private func formatDuration(_ duration: TimeInterval) -> String {
+    func formatDuration(_ duration: TimeInterval) -> String {
         let minutes = Int(duration / 60)
         let seconds = Int(duration.truncatingRemainder(dividingBy: 60))
         return String(format: "%d:%02d", minutes, seconds)
@@ -210,73 +194,45 @@ struct CollectionDetailView: View {
     private func isCurrentTrack(_ item: MPMediaItem) -> Bool {
         return playerManager.currentTrack?.persistentID == item.persistentID
     }
-}
-
-extension UIImage {
-    func analyzeFirstRowColors() -> (isConsistent: Bool, dominantColor: UIColor?) {
-        guard let cgImage = self.cgImage else { return (false, nil) }
-        
-        let width = cgImage.width
-        let height = cgImage.height
-        
-        guard let provider = cgImage.dataProvider,
-              let data = provider.data,
-              let bytes = CFDataGetBytePtr(data) else {
-            return (false, nil)
+    
+    private func loadReleaseInformation() {
+        // Get all release group IDs from the collection
+        let releaseGroupIds = collection.items.compactMap { item in
+            metadataByTrack[item.persistentID]?.releaseGroupId ?? item.musicbrainz.releaseGroupId
         }
         
-        // Check bitmap info to determine byte order
-        let alphaInfo = cgImage.alphaInfo
-        let byteOrder = cgImage.bitmapInfo.rawValue & CGBitmapInfo.byteOrderMask.rawValue
-        
-        // Function to get correct color components based on byte order
-        func getColorComponents(from offset: Int) -> (red: UInt8, green: UInt8, blue: UInt8, alpha: UInt8) {
-            if byteOrder == CGBitmapInfo.byteOrder32Little.rawValue {
-                return (bytes[offset + 2], bytes[offset + 1], bytes[offset], bytes[offset + 3])
-            } else {
-                return (bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
-            }
-        }
-        
-        let firstComponents = getColorComponents(from: 0)
-        let firstPixel = (
-            red: CGFloat(firstComponents.red) / 255.0,
-            green: CGFloat(firstComponents.green) / 255.0,
-            blue: CGFloat(firstComponents.blue) / 255.0,
-            alpha: CGFloat(firstComponents.alpha) / 255.0
-        )
-        
-        for i in 0..<min(20, width) {
-            let offset = i * 4
-            let components = getColorComponents(from: offset)
-        }
-        
-        var isConsistent = true
-        let threshold: CGFloat = 0.05
-        
-        for x in 0..<width {
-            let offset = x * 4
-            let components = getColorComponents(from: offset)
-            let red = CGFloat(components.red) / 255.0
-            let green = CGFloat(components.green) / 255.0
-            let blue = CGFloat(components.blue) / 255.0
+        // Check if all tracks have the same release group ID
+        if let firstId = releaseGroupIds.first,
+           releaseGroupIds.allSatisfy({ $0 == firstId }) {
+            isLoadingReleaseInfo = true
             
-            if abs(red - firstPixel.red) > threshold ||
-               abs(green - firstPixel.green) > threshold ||
-               abs(blue - firstPixel.blue) > threshold {
-                isConsistent = false
-                break
+            Task {
+                do {
+                    // Fetch release group information
+                    let releaseGroup = try await MusicBrainzClient.shared.fetchReleaseGroup(id: firstId)
+                    
+                    // If we have a release ID, fetch release information
+                    var release: MusicBrainzClient.Release?
+                    if let releaseId = collection.items.first?.musicbrainz.releaseId {
+                        release = try await MusicBrainzClient.shared.fetchRelease(id: releaseId)
+                    }
+                    
+                    await MainActor.run {
+                        self.releaseGroup = releaseGroup
+                        self.release = release
+                        self.isLoadingReleaseInfo = false
+                    }
+                } catch {
+                    print("Error loading release information: \(error)")
+                    await MainActor.run {
+                        self.isLoadingReleaseInfo = false
+                    }
+                }
             }
+        } else {
+            releaseGroup = nil
+            release = nil
         }
-        
-        let dominantColor = UIColor(
-            red: firstPixel.red,
-            green: firstPixel.green,
-            blue: firstPixel.blue,
-            alpha: firstPixel.alpha
-        )
-        
-        return (isConsistent, dominantColor)
     }
 }
 
@@ -342,23 +298,6 @@ struct MusicBrainzMetadataView: View {
             
             if let originalYear = metadata.originalYear {
                 MetadataRow(key: "Original Year", value: originalYear)
-            }
-        }
-    }
-}
-
-struct MetadataRow: View {
-    let key: String
-    let value: String?
-    
-    var body: some View {
-        if let value = value {
-            HStack(alignment: .top) {
-                Text(key)
-                    .foregroundColor(.secondary)
-                    .frame(width: 100, alignment: .leading)
-                Text(value)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

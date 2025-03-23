@@ -22,7 +22,7 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
     }
     
     struct Listen: Codable {
-        let listenedAt: Int
+        let listenedAt: Int?
         let trackMetadata: TrackMetadata
         
         enum CodingKeys: String, CodingKey {
@@ -185,9 +185,54 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
         }.resume()
     }
     
-    private func createListen(from item: MPMediaItem) -> Listen {
+    func submitPlayingNow(for item: MPMediaItem) {
+        guard let token = token else {
+            DispatchQueue.main.async {
+                self.toastManager.show("ListenBrainz: Token not configured")
+            }
+            return
+        }
+        
+        let listen = createListen(from: item, includeListenedAt: false)
+        let payload = ListenPayload(listenType: "playing_now", payload: [listen])
+        
+        var request = URLRequest(url: URL(string: "\(baseURL)/submit-listens")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Token \(token)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            request.httpBody = try JSONEncoder().encode(payload)
+        } catch {
+            print("ListenBrainz: Failed to encode playing_now - \(error)")
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("ListenBrainz: Network error - \(error.localizedDescription)")
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                print("ListenBrainz: Invalid response type")
+                return
+            }
+            
+            if httpResponse.statusCode == 200 {
+                print("ListenBrainz: Playing now submitted successfully")
+            } else {
+                let responseText = data.flatMap { String(data: $0, encoding: .utf8) } ?? "No response body"
+                print("ListenBrainz: Server error \(httpResponse.statusCode) - \(responseText)")
+            }
+        }.resume()
+    }
+    
+    private func createListen(from item: MPMediaItem, includeListenedAt: Bool = true) -> Listen {
         Listen(
-            listenedAt: Int(Date().timeIntervalSince1970),
+            listenedAt: includeListenedAt ? Int(Date().timeIntervalSince1970) : nil,
             trackMetadata: Listen.TrackMetadata(
                 artist: item.artist ?? "Unknown Artist",
                 track: item.title ?? "Unknown Track",

@@ -59,6 +59,9 @@ class MusicPlayerManager: ObservableObject {
     @objc private func handlePlaybackStateChanged() {
         DispatchQueue.main.async {
             self.isPlaying = self.player.playbackState == .playing
+            if self.isPlaying, let currentItem = self.player.nowPlayingItem {
+                ListenBrainzClient.shared.submitPlayingNow(for: currentItem)
+            }
             if !self.isPlaying {
                 self.currentPlaybackTime = self.player.currentPlaybackTime
             }

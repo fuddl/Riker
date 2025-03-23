@@ -5,6 +5,29 @@ struct MusicBrainzReleaseInfoView: View {
     let release: MusicBrainzClient.Release?
     let isLoading: Bool
     
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.locale = Locale.current
+        return formatter
+    }()
+    
+    private func formatDate(_ dateString: String?) -> String? {
+        guard let dateString = dateString else { return nil }
+        
+        // MusicBrainz dates are typically in YYYY-MM-DD format
+        let inputFormatter = DateFormatter()
+        inputFormatter.dateFormat = "yyyy-MM-dd"
+        
+        if let date = inputFormatter.date(from: dateString) {
+            return dateFormatter.string(from: date)
+        }
+        
+        // If the date string doesn't match the expected format, return it as is
+        return dateString
+    }
+    
     var body: some View {
         if isLoading {
             ProgressView()
@@ -21,7 +44,7 @@ struct MusicBrainzReleaseInfoView: View {
                     }
                     
                     if let firstReleaseDate = releaseGroup.firstReleaseDate {
-                        MetadataRow(key: "First Release", value: firstReleaseDate)
+                        MetadataRow(key: "First Release", value: formatDate(firstReleaseDate) ?? firstReleaseDate)
                     }
                     
                     if let type = releaseGroup.type {
@@ -109,7 +132,7 @@ struct MusicBrainzReleaseInfoView: View {
                         }
                         
                         if let date = release.date {
-                            MetadataRow(key: "Date", value: date)
+                            MetadataRow(key: "Date", value: formatDate(date) ?? date)
                         }
                         
                         if let country = release.country {

@@ -53,6 +53,20 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
         }
     }
     
+    // MARK: - Release Group Popularity
+    
+    struct ReleaseGroupPopularity: Codable {
+        let releaseGroupMbid: String
+        let totalListenCount: Int
+        let totalUserCount: Int
+        
+        enum CodingKeys: String, CodingKey {
+            case releaseGroupMbid = "release_group_mbid"
+            case totalListenCount = "total_listen_count"
+            case totalUserCount = "total_user_count"
+        }
+    }
+    
     var token: String? {
         get { UserDefaults.standard.string(forKey: "listenbrainz_token") }
         set { UserDefaults.standard.set(newValue, forKey: "listenbrainz_token") }
@@ -355,5 +369,35 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
         } else {
             completionHandler([.alert, .sound])
         }
+    }
+    
+    func getReleaseGroupListenCount(releaseGroupId: String) async throws -> Int {
+        guard let token = token else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        
+        let url = URL(string: "\(baseURL)/popularity/release-group")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Token \(token)", forHTTPHeaderField: "Authorization")
+        
+        let payload = ["release_group_mbids": [releaseGroupId]]
+        request.httpBody = try JSONEncoder().encode(payload)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            let responseText = String(data: data, encoding: .utf8) ?? "No response body"
+            print("ListenBrainz API error \(httpResponse.statusCode): \(responseText)")
+            throw URLError(.badServerResponse)
+        }
+        
+        let popularities = try JSONDecoder().decode([ReleaseGroupPopularity].self, from: data)
+        return popularities.first?.totalListenCount ?? 0
     }
 } 

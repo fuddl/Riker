@@ -4,6 +4,8 @@ struct MusicBrainzReleaseInfoView: View {
     let releaseGroup: MusicBrainzClient.ReleaseGroup?
     let release: MusicBrainzClient.Release?
     let isLoading: Bool
+    @State private var listenCount: Int?
+    @State private var isLoadingListenCount = false
     
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -26,6 +28,15 @@ struct MusicBrainzReleaseInfoView: View {
         
         // If the date string doesn't match the expected format, return it as is
         return dateString
+    }
+    
+    private func formatNumber(_ number: Int) -> String {
+        if number >= 1_000_000 {
+            return String(format: "%.1f,000,000+", Double(number) / 1_000_000)
+        } else if number >= 1_000 {
+            return String(format: "%.0f,000+", Double(number) / 1_000)
+        }
+        return "\(number)"
     }
     
     var body: some View {
@@ -57,25 +68,6 @@ struct MusicBrainzReleaseInfoView: View {
                     }
                 }
                 
-                // Tags
-                if let tags = releaseGroup.tags, !tags.isEmpty {
-                    Group {
-                        Text("Tags")
-                            .font(.headline)
-                        
-                        FlowLayout(spacing: 8) {
-                            ForEach(tags, id: \.name) { tag in
-                                Text(tag.name)
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.secondary.opacity(0.1))
-                                    .cornerRadius(12)
-                            }
-                        }
-                    }
-                }
-                
                 // Genres
                 if let genres = releaseGroup.genres, !genres.isEmpty {
                     Group {
@@ -84,7 +76,7 @@ struct MusicBrainzReleaseInfoView: View {
                         
                         FlowLayout(spacing: 8) {
                             ForEach(genres, id: \.name) { genre in
-                                Text(genre.name)
+                                Text(genre.name.lowercased())
                                     .font(.caption)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
@@ -95,29 +87,76 @@ struct MusicBrainzReleaseInfoView: View {
                     }
                 }
                 
-                // Rating
-                if let rating = releaseGroup.rating,
-                   let votesCount = rating.votesCount,
-                   votesCount > 0 {         
-                    VStack {
-                        Text("Rating")
-                            .font(.headline)
-                        if let value = rating.value {
-                            let roundedValue = round(value * 2) / 2 // Round to nearest 0.5
-                            let fullStars = Int(roundedValue)
-                            let hasHalfStar = roundedValue.truncatingRemainder(dividingBy: 1) != 0
-                            let emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
+                // Tags (excluding those that are already genres)
+                if let tags = releaseGroup.tags,
+                   let genres = releaseGroup.genres,
+                   !tags.isEmpty {
+                    let genreNames = Set(genres.map { $0.name.lowercased() })
+                    let uniqueTags = tags.filter { !genreNames.contains($0.name.lowercased()) }
+                    
+                    if !uniqueTags.isEmpty {
+                        Group {
+                            Text("Tags")
+                                .font(.headline)
                             
-                            let stars = String(repeating: "★", count: fullStars) +
-                                       (hasHalfStar ? "⯨" : "") +
-                                       String(repeating: "☆", count: emptyStars)
-                            Text(stars)
-                                .font(.subheadline)
+                            FlowLayout(spacing: 8) {
+                                ForEach(uniqueTags, id: \.name) { tag in
+                                    Text(tag.name.lowercased())
+                                        .font(.caption)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.secondary.opacity(0.1))
+                                        .cornerRadius(12)
+                                }
+                            }
                         }
-                        
-                        Text("Based on \(votesCount) votes")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                HStack {
+                    // Rating
+                    if let rating = releaseGroup.rating,
+                    let votesCount = rating.votesCount,
+                    votesCount > 0 {         
+                        VStack {
+                            Text("Rating")
+                                .font(.headline)
+                            if let value = rating.value {
+                                let roundedValue = round(value * 2) / 2 // Round to nearest 0.5
+                                let fullStars = Int(roundedValue)
+                                let hasHalfStar = roundedValue.truncatingRemainder(dividingBy: 1) != 0
+                                let emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
+                                
+                                let stars = String(repeating: "★", count: fullStars) +
+                                        (hasHalfStar ? "⯨" : "") +
+                                        String(repeating: "☆", count: emptyStars)
+                                Text(stars)
+                                    .font(.subheadline)
+                            }
+                            
+                            Text("Based on \(votesCount) votes")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    
+                    // Listen Count
+                    if isLoadingListenCount {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else if let listenCount = listenCount {
+                        VStack {
+                            Image(systemName: "headphones")
+                                .foregroundColor(.secondary)
+                            Text(formatNumber(listenCount))
+                                .font(.headline)
+                             Text("times played")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
                 
@@ -168,9 +207,23 @@ struct MusicBrainzReleaseInfoView: View {
                 }
             }
             .padding()
+            .task {
+                await fetchListenCount(releaseGroupId: releaseGroup.id)
+            }
         } else {
             Text("No release information available")
                 .foregroundColor(.secondary)
+        }
+    }
+    
+    private func fetchListenCount(releaseGroupId: String) async {
+        isLoadingListenCount = true
+        defer { isLoadingListenCount = false }
+        
+        do {
+            listenCount = try await ListenBrainzClient.shared.getReleaseGroupListenCount(releaseGroupId: releaseGroupId)
+        } catch {
+            print("Error fetching listen count: \(error)")
         }
     }
 }

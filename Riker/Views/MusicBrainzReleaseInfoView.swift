@@ -144,7 +144,7 @@ struct MusicBrainzReleaseInfoView: View {
                                 .font(.subheadline)
                             }
                             
-                            Text("Based on \(votesCount) votes")
+                            Text("Based on \(votesCount) \(votesCount == 1 ? "vote" : "votes")")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

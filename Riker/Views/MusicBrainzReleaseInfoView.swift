@@ -127,11 +127,21 @@ struct MusicBrainzReleaseInfoView: View {
                                 let hasHalfStar = roundedValue.truncatingRemainder(dividingBy: 1) != 0
                                 let emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
                                 
-                                let stars = String(repeating: "★", count: fullStars) +
-                                        (hasHalfStar ? "⯨" : "") +
-                                        String(repeating: "☆", count: emptyStars)
-                                Text(stars)
-                                    .font(.subheadline)
+                                HStack(spacing: 2) {
+                                    ForEach(0..<fullStars, id: \.self) { _ in
+                                        Image(systemName: "star.fill")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    if hasHalfStar {
+                                        Image(systemName: "star.leadinghalf.filled")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    ForEach(0..<emptyStars, id: \.self) { _ in
+                                        Image(systemName: "star")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .font(.subheadline)
                             }
                             
                             Text("Based on \(votesCount) votes")

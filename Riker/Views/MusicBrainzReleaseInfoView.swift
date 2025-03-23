@@ -73,24 +73,28 @@ struct MusicBrainzReleaseInfoView: View {
                 }
                 
                 // Rating
-                if let rating = releaseGroup.rating {
-                    Group {
+                if let rating = releaseGroup.rating,
+                   let votesCount = rating.votesCount,
+                   votesCount > 0 {         
+                    VStack {
                         Text("Rating")
                             .font(.headline)
-                        
-                        HStack {
-                            if let value = rating.value {
-                                Text(String(format: "%.1f", value))
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                            }
+                        if let value = rating.value {
+                            let roundedValue = round(value * 2) / 2 // Round to nearest 0.5
+                            let fullStars = Int(roundedValue)
+                            let hasHalfStar = roundedValue.truncatingRemainder(dividingBy: 1) != 0
+                            let emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
                             
-                            if let votesCount = rating.votesCount {
-                                Text("(\(votesCount) votes)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                            let stars = String(repeating: "★", count: fullStars) +
+                                       (hasHalfStar ? "⯨" : "") +
+                                       String(repeating: "☆", count: emptyStars)
+                            Text(stars)
+                                .font(.subheadline)
                         }
+                        
+                        Text("Based on \(votesCount) votes")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
                 

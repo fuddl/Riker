@@ -35,12 +35,18 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
             let track: String
             let album: String
             let additionalInfo: AdditionalInfo?
+            let releaseMbid: String?
+            let artistMbids: [String]?
+            let recordingMbid: String?
             
             enum CodingKeys: String, CodingKey {
                 case artist = "artist_name"
                 case track = "track_name"
                 case album = "release_name"
                 case additionalInfo = "additional_info"
+                case releaseMbid = "release_mbid"
+                case artistMbids = "artist_mbids"
+                case recordingMbid = "recording_mbid"
             }
             
             struct AdditionalInfo: Codable {
@@ -92,7 +98,35 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
         ])
     }
     
-    func submitListen(for item: MPMediaItem) {
+    private func createListen(
+        from item: MPMediaItem,
+        includeListenedAt: Bool = true,
+        recordingMbid: String? = nil,
+        releaseMbid: String? = nil,
+        artistMbids: [String]? = nil
+    ) -> Listen {
+        Listen(
+            listenedAt: includeListenedAt ? Int(Date().timeIntervalSince1970) : nil,
+            trackMetadata: Listen.TrackMetadata(
+                artist: item.artist ?? "Unknown Artist",
+                track: item.title ?? "Unknown Track",
+                album: item.albumTitle ?? "Unknown Album",
+                additionalInfo: item.albumArtist.map { albumArtist in
+                    Listen.TrackMetadata.AdditionalInfo(albumArtist: albumArtist)
+                },
+                releaseMbid: releaseMbid,
+                artistMbids: artistMbids,
+                recordingMbid: recordingMbid
+            )
+        )
+    }
+    
+    func submitListen(
+        for item: MPMediaItem,
+        recordingMbid: String? = nil,
+        releaseMbid: String? = nil,
+        artistMbids: [String]? = nil
+    ) {
         guard let token = token else {
             DispatchQueue.main.async {
                 self.toastManager.show("ListenBrainz: Token not configured")
@@ -100,7 +134,13 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
             return
         }
         
-        let listen = createListen(from: item)
+        let listen = createListen(
+            from: item,
+            includeListenedAt: true,
+            recordingMbid: recordingMbid,
+            releaseMbid: releaseMbid,
+            artistMbids: artistMbids
+        )
         let payload = ListenPayload(listenType: "single", payload: [listen])
         
         var request = URLRequest(url: URL(string: "\(baseURL)/submit-listens")!)
@@ -199,7 +239,12 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
         }.resume()
     }
     
-    func submitPlayingNow(for item: MPMediaItem) {
+    func submitPlayingNow(
+        for item: MPMediaItem,
+        recordingMbid: String? = nil,
+        releaseMbid: String? = nil,
+        artistMbids: [String]? = nil
+    ) {
         guard let token = token else {
             DispatchQueue.main.async {
                 self.toastManager.show("ListenBrainz: Token not configured")
@@ -207,7 +252,13 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
             return
         }
         
-        let listen = createListen(from: item, includeListenedAt: false)
+        let listen = createListen(
+            from: item,
+            includeListenedAt: false,
+            recordingMbid: recordingMbid,
+            releaseMbid: releaseMbid,
+            artistMbids: artistMbids
+        )
         let payload = ListenPayload(listenType: "playing_now", payload: [listen])
         
         var request = URLRequest(url: URL(string: "\(baseURL)/submit-listens")!)
@@ -242,20 +293,6 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
                 print("ListenBrainz: Server error \(httpResponse.statusCode) - \(responseText)")
             }
         }.resume()
-    }
-    
-    private func createListen(from item: MPMediaItem, includeListenedAt: Bool = true) -> Listen {
-        Listen(
-            listenedAt: includeListenedAt ? Int(Date().timeIntervalSince1970) : nil,
-            trackMetadata: Listen.TrackMetadata(
-                artist: item.artist ?? "Unknown Artist",
-                track: item.title ?? "Unknown Track",
-                album: item.albumTitle ?? "Unknown Album",
-                additionalInfo: item.albumArtist.map { albumArtist in
-                    Listen.TrackMetadata.AdditionalInfo(albumArtist: albumArtist)
-                }
-            )
-        )
     }
     
     private func queueListen(_ listen: Listen) {

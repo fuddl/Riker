@@ -60,7 +60,13 @@ class MusicPlayerManager: ObservableObject {
         DispatchQueue.main.async {
             self.isPlaying = self.player.playbackState == .playing
             if self.isPlaying, let currentItem = self.player.nowPlayingItem {
-                ListenBrainzClient.shared.submitPlayingNow(for: currentItem)
+                let metadata = currentItem.musicbrainz
+                ListenBrainzClient.shared.submitPlayingNow(
+                    for: currentItem,
+                    recordingMbid: metadata.recordingId,
+                    releaseMbid: metadata.releaseId,
+                    artistMbids: metadata.artistId.map { [$0] }
+                )
             }
             if !self.isPlaying {
                 self.currentPlaybackTime = self.player.currentPlaybackTime
@@ -100,7 +106,13 @@ class MusicPlayerManager: ObservableObject {
             // Check for scrobbling threshold
             if !self.hasScrobbled && currentTime > (currentItem.playbackDuration * 2/3) {
                 self.hasScrobbled = true
-                ListenBrainzClient.shared.submitListen(for: currentItem)
+                let metadata = currentItem.musicbrainz
+                ListenBrainzClient.shared.submitListen(
+                    for: currentItem,
+                    recordingMbid: metadata.recordingId,
+                    releaseMbid: metadata.releaseId,
+                    artistMbids: metadata.artistId.map { [$0] }
+                )
             }
         }
     }

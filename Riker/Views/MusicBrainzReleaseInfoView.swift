@@ -157,16 +157,19 @@ struct MusicBrainzReleaseInfoView: View {
                             .progressViewStyle(.circular)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else if let listenCount = listenCount {
-                        VStack {
-                            Image(systemName: "headphones")
-                                .foregroundColor(.secondary)
-                            Text(formatNumber(listenCount))
-                                .font(.headline)
-                             Text("times played")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        Link(destination: URL(string: "https://listenbrainz.org/release-group/\(releaseGroup.id)")!) {
+                            VStack {
+                                Image(systemName: "headphones")
+                                    .foregroundColor(.secondary)
+                                Text(formatNumber(listenCount))
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("times played")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
                         }
-                        .frame(maxWidth: .infinity)
                     }
                 }
                 

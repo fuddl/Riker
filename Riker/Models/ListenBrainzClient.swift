@@ -10,6 +10,10 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
     private let userDefaults = UserDefaults.standard
     private var pendingListens: [Listen] = []
     private let toastManager = ToastManager.shared
+    private let userAgent = "Riker/1.0 (https://github.com/fuddl/Riker)"
+    
+    // Use rate limiter with no minimum interval (will be controlled by headers)
+    private let rateLimiter = RateLimiter()
     
     struct ListenPayload: Codable {
         let listenType: String
@@ -436,5 +440,96 @@ class ListenBrainzClient: NSObject, UNUserNotificationCenterDelegate {
         
         let popularities = try JSONDecoder().decode([ReleaseGroupPopularity].self, from: data)
         return popularities.first?.totalListenCount ?? 0
+    }
+    
+    // Add method to handle API requests
+    enum ListenBrainzError: LocalizedError {
+        case badResponse(Int, String)
+        case gone(String)
+        case rateLimitExceeded(String)
+        case serverError(Int, String)
+        case networkError(Error)
+        
+        var errorDescription: String? {
+            switch self {
+            case .badResponse(let code, let message):
+                return "ListenBrainz API error \(code): \(message)"
+            case .gone:
+                return "This ListenBrainz API endpoint is no longer available (410 Gone). The app may need to be updated."
+            case .rateLimitExceeded(let message):
+                return "Rate limit exceeded: \(message)"
+            case .serverError(let code, let message):
+                return "Server error \(code): \(message)"
+            case .networkError(let error):
+                return "Network error: \(error.localizedDescription)"
+            }
+        }
+    }
+    
+    private func parseErrorResponse(_ data: Data, contentType: String?) -> String {
+        // If content type is HTML, extract text content
+        if contentType?.contains("text/html") == true {
+            if let htmlString = String(data: data, encoding: .utf8) {
+                // Simple HTML stripping - could be more sophisticated if needed
+                return htmlString
+                    .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+                    .components(separatedBy: .whitespacesAndNewlines)
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " ")
+            }
+        }
+        
+        // Try to parse as JSON
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let error = json["error"] as? String {
+            return error
+        }
+        
+        // Fallback to raw string
+        return String(data: data, encoding: .utf8) ?? "Unknown error"
+    }
+    
+    private func makeRequest<T: Decodable>(_ endpoint: String, method: String = "GET") async throws -> T {
+        let url = URL(string: "\(baseURL)\(endpoint)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        try await rateLimiter.waitForNextRequest()
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ListenBrainzError.networkError(URLError(.badServerResponse))
+        }
+        
+        // Update rate limits even for error responses
+        rateLimiter.updateFromHeaders(httpResponse.allHeaderFields)
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(T.self, from: data)
+        
+        case 410:
+            let message = parseErrorResponse(data, contentType: httpResponse.value(forHTTPHeaderField: "Content-Type"))
+            throw ListenBrainzError.gone(message)
+        
+        case 429:
+            let message = parseErrorResponse(data, contentType: httpResponse.value(forHTTPHeaderField: "Content-Type"))
+            throw ListenBrainzError.rateLimitExceeded(message)
+        
+        case 400...499:
+            let message = parseErrorResponse(data, contentType: httpResponse.value(forHTTPHeaderField: "Content-Type"))
+            throw ListenBrainzError.badResponse(httpResponse.statusCode, message)
+        
+        case 500...599:
+            let message = parseErrorResponse(data, contentType: httpResponse.value(forHTTPHeaderField: "Content-Type"))
+            throw ListenBrainzError.serverError(httpResponse.statusCode, message)
+        
+        default:
+            let message = parseErrorResponse(data, contentType: httpResponse.value(forHTTPHeaderField: "Content-Type"))
+            throw ListenBrainzError.badResponse(httpResponse.statusCode, message)
+        }
     }
 } 

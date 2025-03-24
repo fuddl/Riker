@@ -1,9 +1,32 @@
 import Foundation
 
+enum MusicBrainzError: LocalizedError {
+    case badResponse(Int, String)
+    case rateLimitExceeded(String)
+    case serverError(Int, String)
+    case networkError(Error)
+    
+    var errorDescription: String? {
+        switch self {
+        case .badResponse(let code, let message):
+            return "MusicBrainz API error \(code): \(message)"
+        case .rateLimitExceeded(let message):
+            return "Rate limit exceeded: \(message)"
+        case .serverError(let code, let message):
+            return "Server error \(code): \(message)"
+        case .networkError(let error):
+            return "Network error: \(error.localizedDescription)"
+        }
+    }
+}
+
 class MusicBrainzClient {
     static let shared = MusicBrainzClient()
     private let baseURL = "https://musicbrainz.org/ws/2"
-    private let userAgent = "Riker/1.0 (https://github.com/yourusername/riker)"
+    private let userAgent = "Riker/1.0 (https://github.com/fuddl/Riker)"
+    
+    // Use rate limiter with 1 second minimum interval
+    private let rateLimiter = RateLimiter(minimumRequestInterval: 1.0)
     
     private init() {}
     
@@ -144,47 +167,48 @@ class MusicBrainzClient {
     
     // MARK: - API Methods
     
-    func fetchReleaseGroup(id: String) async throws -> ReleaseGroup {
-        let url = URL(string: "\(baseURL)/release-group/\(id)?inc=releases+artist-credits+tags+ratings+genres")!
+    private func makeRequest<T: Decodable>(_ endpoint: String) async throws -> T {
+        let url = URL(string: "\(baseURL)\(endpoint)")!
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
+        try await rateLimiter.waitForNextRequest()
+        
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
+            throw MusicBrainzError.networkError(URLError(.badServerResponse))
         }
         
-        guard httpResponse.statusCode == 200 else {
-            let responseText = String(data: data, encoding: .utf8) ?? "No response body"
-            print("MusicBrainz API error \(httpResponse.statusCode): \(responseText)")
-            throw URLError(.badServerResponse)
-        }
+        let responseText = String(data: data, encoding: .utf8) ?? "No response body"
         
-        let decoder = JSONDecoder()
-        return try decoder.decode(ReleaseGroup.self, from: data)
+        switch httpResponse.statusCode {
+        case 200:
+            let decoder = JSONDecoder()
+            return try decoder.decode(T.self, from: data)
+            
+        case 503:
+            // When we hit rate limit, increase the wait time
+            rateLimiter.backoff()
+            throw MusicBrainzError.rateLimitExceeded(responseText)
+            
+        case 400...499:
+            throw MusicBrainzError.badResponse(httpResponse.statusCode, responseText)
+            
+        case 500...599:
+            throw MusicBrainzError.serverError(httpResponse.statusCode, responseText)
+            
+        default:
+            throw MusicBrainzError.badResponse(httpResponse.statusCode, responseText)
+        }
+    }
+    
+    func fetchReleaseGroup(id: String) async throws -> ReleaseGroup {
+        return try await makeRequest("/release-group/\(id)?inc=releases+artist-credits+tags+ratings+genres")
     }
     
     func fetchRelease(id: String) async throws -> Release {
-        let url = URL(string: "\(baseURL)/release/\(id)?inc=artist-credits+labels+recordings")!
-        var request = URLRequest(url: url)
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            let responseText = String(data: data, encoding: .utf8) ?? "No response body"
-            print("MusicBrainz API error \(httpResponse.statusCode): \(responseText)")
-            throw URLError(.badServerResponse)
-        }
-        
-        let decoder = JSONDecoder()
-        return try decoder.decode(Release.self, from: data)
+        return try await makeRequest("/release/\(id)?inc=artist-credits+labels+recordings")
     }
 } 

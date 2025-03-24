@@ -28,7 +28,20 @@ class MusicBrainzClient {
     // Use rate limiter with 1 second minimum interval
     private let rateLimiter = RateLimiter(minimumRequestInterval: 1.0)
     
-    private init() {}
+    // Replace NSCache with disk cache
+    private let cache = NSCache<NSString, NSData>()
+    private let fileManager = FileManager.default
+    
+    private var cacheDirectory: URL? {
+        return fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent("MusicBrainzCache")
+    }
+    
+    private init() {
+        // Create cache directory if it doesn't exist
+        if let cacheDir = cacheDirectory {
+            try? fileManager.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        }
+    }
     
     // MARK: - Release Group
     
@@ -168,6 +181,17 @@ class MusicBrainzClient {
     // MARK: - API Methods
     
     private func makeRequest<T: Decodable>(_ endpoint: String) async throws -> T {
+        // Generate cache file path
+        let cacheKey = endpoint.data(using: .utf8)!.sha256Hash
+        let cacheFile = cacheDirectory?.appendingPathComponent(cacheKey)
+        
+        // Check disk cache first
+        if let cacheFile = cacheFile,
+           let data = try? Data(contentsOf: cacheFile) {
+            let decoder = JSONDecoder()
+            return try decoder.decode(T.self, from: data)
+        }
+        
         let url = URL(string: "\(baseURL)\(endpoint)")!
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
@@ -186,6 +210,10 @@ class MusicBrainzClient {
         switch httpResponse.statusCode {
         case 200:
             let decoder = JSONDecoder()
+            // Save to disk cache
+            if let cacheFile = cacheFile {
+                try? data.write(to: cacheFile)
+            }
             return try decoder.decode(T.self, from: data)
             
         case 503:
@@ -210,5 +238,19 @@ class MusicBrainzClient {
     
     func fetchRelease(id: String) async throws -> Release {
         return try await makeRequest("/release/\(id)?inc=artist-credits+labels+recordings")
+    }
+    
+    func clearCache(releaseGroupId: String, releaseId: String) {
+        let releaseGroupEndpoint = "/release-group/\(releaseGroupId)?inc=releases+artist-credits+tags+ratings+genres"
+        let releaseEndpoint = "/release/\(releaseId)?inc=artist-credits+labels+recordings"
+        
+        // Clear disk cache
+        let releaseGroupKey = releaseGroupEndpoint.data(using: .utf8)!.sha256Hash
+        let releaseKey = releaseEndpoint.data(using: .utf8)!.sha256Hash
+        
+        if let cacheDir = cacheDirectory {
+            try? fileManager.removeItem(at: cacheDir.appendingPathComponent(releaseGroupKey))
+            try? fileManager.removeItem(at: cacheDir.appendingPathComponent(releaseKey))
+        }
     }
 } 

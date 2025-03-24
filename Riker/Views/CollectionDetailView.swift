@@ -11,6 +11,7 @@ struct CollectionDetailView: View {
     @State private var releaseGroup: MusicBrainzClient.ReleaseGroup?
     @State private var release: MusicBrainzClient.Release?
     @State private var isLoadingReleaseInfo = false
+    @State private var isReloading = false
     
     init(collection: MPMediaItemCollection) {
         self.collection = collection
@@ -164,6 +165,11 @@ struct CollectionDetailView: View {
                 }
             }
         }
+        .refreshable {
+            await reloadMusicBrainzData()
+            // After clearing cache and reloading, we should reload the release information
+            loadReleaseInformation()
+        }
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -232,6 +238,19 @@ struct CollectionDetailView: View {
         } else {
             releaseGroup = nil
             release = nil
+        }
+    }
+    
+    private func reloadMusicBrainzData() async {
+        isReloading = true
+        defer { isReloading = false }
+        
+        // Extract IDs from the first track's metadata
+        if let firstTrack = collection.items.first,
+           let releaseGroupId = firstTrack.musicbrainz.releaseGroupId,
+           let releaseId = firstTrack.musicbrainz.releaseId {
+            
+            MusicBrainzClient.shared.clearCache(releaseGroupId: releaseGroupId, releaseId: releaseId)
         }
     }
 }

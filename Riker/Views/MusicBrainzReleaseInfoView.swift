@@ -30,15 +30,6 @@ struct MusicBrainzReleaseInfoView: View {
         return dateString
     }
     
-    private func formatNumber(_ number: Int) -> String {
-        if number >= 1_000_000 {
-            return String(format: "%.1f,000,000+", Double(number) / 1_000_000)
-        } else if number >= 1_000 {
-            return String(format: "%.0f,000+", Double(number) / 1_000)
-        }
-        return "\(number)"
-    }
-    
     var body: some View {
         if isLoading {
             ProgressView()
@@ -109,66 +100,6 @@ struct MusicBrainzReleaseInfoView: View {
                                         .cornerRadius(12)
                                 }
                             }
-                        }
-                    }
-                }
-                
-                HStack {
-                    // Rating
-                    if let rating = releaseGroup.rating,
-                    let votesCount = rating.votesCount,
-                    votesCount > 0 {         
-                        VStack {
-                            Text("Rating")
-                                .font(.headline)
-                            if let value = rating.value {
-                                let roundedValue = round(value * 2) / 2 // Round to nearest 0.5
-                                let fullStars = Int(roundedValue)
-                                let hasHalfStar = roundedValue.truncatingRemainder(dividingBy: 1) != 0
-                                let emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
-                                
-                                HStack(spacing: 2) {
-                                    ForEach(0..<fullStars, id: \.self) { _ in
-                                        Image(systemName: "star.fill")
-                                            .foregroundColor(.secondary)
-                                    }
-                                    if hasHalfStar {
-                                        Image(systemName: "star.leadinghalf.filled")
-                                            .foregroundColor(.secondary)
-                                    }
-                                    ForEach(0..<emptyStars, id: \.self) { _ in
-                                        Image(systemName: "star")
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .font(.subheadline)
-                            }
-                            
-                            Text("Based on \(votesCount) \(votesCount == 1 ? "vote" : "votes")")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    
-                    // Listen Count
-                    if isLoadingListenCount {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else if let listenCount = listenCount {
-                        Link(destination: URL(string: "https://listenbrainz.org/release-group/\(releaseGroup.id)")!) {
-                            VStack {
-                                Image(systemName: "headphones")
-                                    .foregroundColor(.secondary)
-                                Text(formatNumber(listenCount))
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                Text("times played")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
                         }
                     }
                 }

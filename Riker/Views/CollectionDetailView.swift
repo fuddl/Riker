@@ -12,6 +12,8 @@ struct CollectionDetailView: View {
     @State private var release: MusicBrainzClient.Release?
     @State private var isLoadingReleaseInfo = false
     @State private var isReloading = false
+    @State private var isLoadingListenCount = false
+    @State private var listenCount: Int?
     
     init(collection: MPMediaItemCollection) {
         self.collection = collection
@@ -149,6 +151,73 @@ struct CollectionDetailView: View {
                             .padding(.leading)
                     }
                     
+                    // Stats Section (Rating and Listen Count)
+                    if let releaseGroup = releaseGroup {                        
+                        HStack(spacing: 20) {
+                            // Rating
+                            if let rating = releaseGroup.rating,
+                               let votesCount = rating.votesCount,
+                               votesCount > 0 {         
+                                VStack {
+                                    Text("Rating")
+                                        .font(.headline)
+                                    if let value = rating.value {
+                                        let roundedValue = round(value * 2) / 2 // Round to nearest 0.5
+                                        let fullStars = Int(roundedValue)
+                                        let hasHalfStar = roundedValue.truncatingRemainder(dividingBy: 1) != 0
+                                        let emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
+                                        
+                                        HStack(spacing: 2) {
+                                            ForEach(0..<fullStars, id: \.self) { _ in
+                                                Image(systemName: "star.fill")
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            if hasHalfStar {
+                                                Image(systemName: "star.leadinghalf.filled")
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            ForEach(0..<emptyStars, id: \.self) { _ in
+                                                Image(systemName: "star")
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        .font(.subheadline)
+                                        
+                                        Text("Based on \(votesCount) \(votesCount == 1 ? "vote" : "votes")")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            
+                            // Listen Count
+                            if isLoadingListenCount {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                            } else if let listenCount = listenCount {
+                                Link(destination: URL(string: "https://listenbrainz.org/release-group/\(releaseGroup.id)")!) {
+                                    VStack {
+                                        Image(systemName: "headphones")
+                                            .foregroundColor(.secondary)
+                                        Text(formatNumber(listenCount))
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                        Text("times played")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                    }
+                    
                     // Release Information Section
                     if !collection.items.isEmpty {
                         Section {
@@ -227,11 +296,15 @@ struct CollectionDetailView: View {
         if let firstId = releaseGroupIds.first,
            releaseGroupIds.allSatisfy({ $0 == firstId }) {
             isLoadingReleaseInfo = true
+            isLoadingListenCount = true
             
             Task {
                 do {
                     // Fetch release group information
                     let releaseGroup = try await MusicBrainzClient.shared.fetchReleaseGroup(id: firstId)
+                    
+                    // Use the existing method for listen count
+                    let count = try await ListenBrainzClient.shared.getReleaseGroupListenCount(releaseGroupId: firstId)
                     
                     // If we have a release ID, fetch release information
                     var release: MusicBrainzClient.Release?
@@ -242,18 +315,22 @@ struct CollectionDetailView: View {
                     await MainActor.run {
                         self.releaseGroup = releaseGroup
                         self.release = release
+                        self.listenCount = count
                         self.isLoadingReleaseInfo = false
+                        self.isLoadingListenCount = false
                     }
                 } catch {
                     print("Error loading release information: \(error)")
                     await MainActor.run {
                         self.isLoadingReleaseInfo = false
+                        self.isLoadingListenCount = false
                     }
                 }
             }
         } else {
             releaseGroup = nil
             release = nil
+            listenCount = nil
         }
     }
     
@@ -268,6 +345,16 @@ struct CollectionDetailView: View {
             
             MusicBrainzClient.shared.clearCache(releaseGroupId: releaseGroupId, releaseId: releaseId)
         }
+    }
+    
+    // Add this helper function for formatting numbers
+    private func formatNumber(_ number: Int) -> String {
+        if number >= 1_000_000 {
+            return String(format: "%.1f,000,000+", Double(number) / 1_000_000)
+        } else if number >= 1_000 {
+            return String(format: "%.0f,000+", Double(number) / 1_000)
+        }
+        return "\(number)"
     }
 }
 

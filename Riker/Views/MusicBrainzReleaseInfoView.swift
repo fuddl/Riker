@@ -52,30 +52,6 @@ struct MusicBrainzReleaseInfoView: View {
                     if let type = releaseGroup.type {
                         MetadataRow(key: "Type", value: type)
                     }
-                    
-                    if let artistCredit = releaseGroup.artistCredit {
-                        let artists = artistCredit.map { $0.name + ($0.joinPhrase ?? "") }.joined()
-                        MetadataRow(key: "Artists", value: artists)
-                    }
-                }
-                
-                // Genres
-                if let genres = releaseGroup.genres, !genres.isEmpty {
-                    Group {
-                        Text("Genres")
-                            .font(.headline)
-                        
-                        FlowLayout(spacing: 8) {
-                            ForEach(genres, id: \.name) { genre in
-                                Text(genre.name.lowercased())
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.secondary.opacity(0.1))
-                                    .cornerRadius(12)
-                            }
-                        }
-                    }
                 }
                 
                 // Tags (excluding those that are already genres)

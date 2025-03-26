@@ -89,8 +89,14 @@ struct CollectionDetailView: View {
                                     Text(releaseGroup?.title ?? representative.albumTitle ?? "Unknown Album")
                                         .font(.title2)
                                         .fontWeight(.bold)
-                                    Text(representative.artist ?? "Unknown Artist")
-                                        .foregroundColor(.secondary)
+                                    if let artistCredit = releaseGroup?.artistCredit {
+                                        let artists = artistCredit.map { $0.name + ($0.joinPhrase ?? "") }.joined()
+                                        Text(artists)
+                                            .foregroundColor(.secondary)
+                                    } else {
+                                        Text(representative.artist ?? "Unknown Artist")
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                             }
 
@@ -105,6 +111,15 @@ struct CollectionDetailView: View {
                             .buttonStyle(.bordered)
                             .tint(.accentColor)
                             .padding(.top, 8)
+                        }
+                        .padding()
+                    }
+
+                    if let genres = releaseGroup?.genres, !genres.isEmpty {
+                        Group {
+                            Text(genres.map { $0.name }.joined(separator: " · "))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .padding()
                     }

@@ -12,6 +12,7 @@
 		4621E0042D8F425F000D3D2D /* MusicBrainzReleaseInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4621E0032D8F4245000D3D2D /* MusicBrainzReleaseInfoView.swift */; };
 		4621E00C2D8F465B000D3D2D /* MetadataRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4621E00B2D8F4658000D3D2D /* MetadataRow.swift */; };
 		463D3AF02D916A3700B41304 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 463D3AEF2D916A3500B41304 /* RateLimiter.swift */; };
+		463D3AF22D9413EF00B41304 /* TrackRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 463D3AF12D9413EE00B41304 /* TrackRowView.swift */; };
 		46BE1D1B2D84A8FC0011C447 /* RikerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D102D84A8FC0011C447 /* RikerApp.swift */; };
 		46BE1D1C2D84A8FC0011C447 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D112D84A8FC0011C447 /* ContentView.swift */; };
 		46BE1D1D2D84A8FC0011C447 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BE1D122D84A8FC0011C447 /* LibraryView.swift */; };
@@ -47,6 +48,7 @@
 		4621E0032D8F4245000D3D2D /* MusicBrainzReleaseInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBrainzReleaseInfoView.swift; sourceTree = "<group>"; };
 		4621E00B2D8F4658000D3D2D /* MetadataRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataRow.swift; sourceTree = "<group>"; };
 		463D3AEF2D916A3500B41304 /* RateLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiter.swift; sourceTree = "<group>"; };
+		463D3AF12D9413EE00B41304 /* TrackRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackRowView.swift; sourceTree = "<group>"; };
 		464AC7212D8498D50093A909 /* Riker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Riker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		464AC7312D8498D60093A909 /* RikerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RikerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		464AC73B2D8498D60093A909 /* RikerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RikerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -160,6 +162,7 @@
 		46BE1D1A2D84A8FC0011C447 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				463D3AF12D9413EE00B41304 /* TrackRowView.swift */,
 				4621E00B2D8F4658000D3D2D /* MetadataRow.swift */,
 				4621E0032D8F4245000D3D2D /* MusicBrainzReleaseInfoView.swift */,
 				46BE1D122D84A8FC0011C447 /* LibraryView.swift */,
@@ -320,6 +323,7 @@
 			files = (
 				4621E0022D8F4219000D3D2D /* MusicBrainzClient.swift in Sources */,
 				4621E0042D8F425F000D3D2D /* MusicBrainzReleaseInfoView.swift in Sources */,
+				463D3AF22D9413EF00B41304 /* TrackRowView.swift in Sources */,
 				46BE1D1B2D84A8FC0011C447 /* RikerApp.swift in Sources */,
 				46BE1D1C2D84A8FC0011C447 /* ContentView.swift in Sources */,
 				4621E00C2D8F465B000D3D2D /* MetadataRow.swift in Sources */,

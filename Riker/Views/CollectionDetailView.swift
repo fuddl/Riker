@@ -86,7 +86,7 @@ struct CollectionDetailView: View {
                                     Text("Playlist")
                                         .foregroundColor(.secondary)
                                 } else {
-                                    Text(representative.albumTitle ?? "Unknown Album")
+                                    Text(releaseGroup?.title ?? representative.albumTitle ?? "Unknown Album")
                                         .font(.title2)
                                         .fontWeight(.bold)
                                     Text(representative.artist ?? "Unknown Artist")
@@ -111,42 +111,15 @@ struct CollectionDetailView: View {
                     
                     // Track list
                     ForEach(collection.items, id: \.persistentID) { item in
-                        Button(action: {
-                            playerManager.playCollection(collection, startingWith: item)
-                            toastManager.show("Playing \(item.title ?? "Unknown Track")")
-                        }) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(item.title ?? "Unknown Track")
-                                        .foregroundColor(isCurrentTrack(item) ? .accentColor : .primary)
-                                        .fontWeight(isCurrentTrack(item) ? .semibold : .regular)
-                                        .multilineTextAlignment(.leading)
-                                    Text(item.artist ?? "Unknown Artist")
-                                        .font(.subheadline)
-                                        .foregroundColor(isCurrentTrack(item) ? .accentColor.opacity(0.8) : .secondary)
-                                    if let recordingId = metadataByTrack[item.persistentID]?.recordingId ?? item.musicbrainz.recordingId {
-                                        Link(recordingId, 
-                                             destination: URL(string: "https://musicbrainz.org/recording/\(recordingId)")!)
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary.opacity(0.8))
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 8) {
-                                    if isCurrentTrack(item) && playerManager.isPlaying {
-                                        Image(systemName: "speaker.wave.2.fill")
-                                            .foregroundColor(.accentColor)
-                                    }
-                                    Text(formatDuration(item.playbackDuration))
-                                        .font(.subheadline)
-                                        .foregroundColor(isCurrentTrack(item) ? .accentColor : .secondary)
-                                }
+                        TrackRowView(
+                            item: item,
+                            isCurrentTrack: isCurrentTrack(item),
+                            isPlaying: playerManager.isPlaying,
+                            metadata: metadataByTrack[item.persistentID],
+                            onTap: {
+                                playerManager.playCollection(collection, startingWith: item)
                             }
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                        }
+                        )
                         Divider()
                             .padding(.leading)
                     }

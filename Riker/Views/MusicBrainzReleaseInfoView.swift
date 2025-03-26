@@ -44,11 +44,6 @@ struct MusicBrainzReleaseInfoView: View {
                     if let title = releaseGroup.title {
                         MetadataRow(key: "Title", value: title)
                     }
-                    
-                    if let firstReleaseDate = releaseGroup.firstReleaseDate {
-                        MetadataRow(key: "First Release", value: formatDate(firstReleaseDate) ?? firstReleaseDate)
-                    }
-                    
                     if let type = releaseGroup.type {
                         MetadataRow(key: "Type", value: type)
                     }

@@ -113,16 +113,23 @@ struct CollectionDetailView: View {
                             .padding(.top, 8)
                         }
                         .padding()
+                        if let genres = releaseGroup?.genres, !genres.isEmpty {
+                            Group {
+                                Text(genres.map { $0.name }.joined(separator: " · "))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                        } else {
+                            Group {
+                                if let genre = representative.genre {
+                                    Text(genre.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: " · "))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding()
+                        }
                     }
 
-                    if let genres = releaseGroup?.genres, !genres.isEmpty {
-                        Group {
-                            Text(genres.map { $0.name }.joined(separator: " · "))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding()
-                    }
                     
                     // Track list
                     ForEach(collection.items, id: \.persistentID) { item in

@@ -5,6 +5,8 @@ enum MusicBrainzError: LocalizedError {
     case rateLimitExceeded(String)
     case serverError(Int, String)
     case networkError(Error)
+    case invalidURL
+    case invalidResponse
     
     var errorDescription: String? {
         switch self {
@@ -16,6 +18,10 @@ enum MusicBrainzError: LocalizedError {
             return "Server error \(code): \(message)"
         case .networkError(let error):
             return "Network error: \(error.localizedDescription)"
+        case .invalidURL:
+            return "Invalid URL"
+        case .invalidResponse:
+            return "Invalid response"
         }
     }
 }
@@ -24,6 +30,8 @@ class MusicBrainzClient {
     static let shared = MusicBrainzClient()
     private let baseURL = "https://musicbrainz.org/ws/2"
     private let userAgent = "Riker/1.0 (https://github.com/fuddl/Riker)"
+    private let userDefaults = UserDefaults.standard
+    private let sessionKey = "musicbrainz_session"
     
     // Use rate limiter with 1 second minimum interval
     private let rateLimiter = RateLimiter(minimumRequestInterval: 1.0)
@@ -40,6 +48,87 @@ class MusicBrainzClient {
         // Create cache directory if it doesn't exist
         if let cacheDir = cacheDirectory {
             try? fileManager.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        }
+    }
+    
+    // MARK: - Session Management
+    
+    func getSession() -> String? {
+        let session = userDefaults.string(forKey: sessionKey)
+        print("MusicBrainzClient: Getting session: \(session != nil ? "Found" : "Not found")")
+        return session
+    }
+    
+    func setSession(_ session: String) {
+        print("MusicBrainzClient: Setting session")
+        userDefaults.set(session, forKey: sessionKey)
+        userDefaults.synchronize() // Force immediate write
+    }
+    
+    func clearSession() {
+        print("MusicBrainzClient: Clearing session")
+        userDefaults.removeObject(forKey: sessionKey)
+        userDefaults.synchronize() // Force immediate write
+    }
+    
+    // MARK: - Rating Submission
+    
+    func submitRating(releaseGroupId: String, rating: Int, session: String) async throws {
+        print("MusicBrainzClient: Submitting rating \(rating) for release group \(releaseGroupId)")
+        
+        guard let url = URL(string: "\(baseURL)/rating?client=Riker-1.0") else {
+            throw MusicBrainzError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/xml; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        
+        // Add the session cookie
+        let cookieString = "musicbrainz_server_session=\(session)"
+        request.setValue(cookieString, forHTTPHeaderField: "Cookie")
+        print("MusicBrainzClient: Added session cookie to request: \(cookieString)")
+        
+        // Create XML payload
+        let xmlString = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <metadata xmlns="http://musicbrainz.org/ns/mmd-2.0#">
+            <release-group-list>
+                <release-group id="\(releaseGroupId)">
+                    <user-rating>\(rating * 20)</user-rating>
+                </release-group>
+            </release-group-list>
+        </metadata>
+        """
+        
+        request.httpBody = xmlString.data(using: .utf8)
+        
+        print("MusicBrainzClient: Sending rating request")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw MusicBrainzError.invalidResponse
+        }
+        
+        print("MusicBrainzClient: Response status code: \(httpResponse.statusCode)")
+        
+        switch httpResponse.statusCode {
+        case 200, 201:
+            print("MusicBrainzClient: Rating submitted successfully")
+            return
+        case 401:
+            print("MusicBrainzClient: Unauthorized (401)")
+            throw MusicBrainzError.badResponse(401, "Session expired")
+        case 404:
+            print("MusicBrainzClient: Not Found (404)")
+            throw MusicBrainzError.badResponse(404, "Release group not found")
+        default:
+            print("MusicBrainzClient: Unexpected status code: \(httpResponse.statusCode)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("MusicBrainzClient: Response body: \(responseString)")
+            }
+            throw MusicBrainzError.badResponse(httpResponse.statusCode, "Unexpected response")
         }
     }
     

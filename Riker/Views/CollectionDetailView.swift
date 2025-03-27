@@ -14,6 +14,7 @@ struct CollectionDetailView: View {
     @State private var isReloading = false
     @State private var isLoadingListenCount = false
     @State private var listenCount: Int?
+    @State private var showingRatingPopup = false
     
     init(collection: MPMediaItemCollection) {
         self.collection = collection
@@ -168,36 +169,40 @@ struct CollectionDetailView: View {
                                 // Rating
                                 if let rating = releaseGroup.rating,
                                 let votesCount = rating.votesCount {         
-                                    VStack {
-                                        Text("Rating")
-                                            .font(.headline)
-                                        let value = rating.value ?? 0
-                                        let roundedValue = round(value * 2) / 2 // Round to nearest 0.5
-                                        let fullStars = Int(roundedValue)
-                                        let hasHalfStar = roundedValue.truncatingRemainder(dividingBy: 1) != 0
-                                        let emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
-                                        
-                                        HStack(spacing: 2) {
-                                            ForEach(0..<fullStars, id: \.self) { _ in
-                                                Image(systemName: "star.fill")
-                                                    .foregroundColor(.secondary)
+                                    Button(action: {
+                                        showingRatingPopup = true
+                                    }) {
+                                        VStack {
+                                            Text("Rating")
+                                                .font(.headline)
+                                            let value = rating.value ?? 0
+                                            let roundedValue = round(value * 2) / 2 // Round to nearest 0.5
+                                            let fullStars = Int(roundedValue)
+                                            let hasHalfStar = roundedValue.truncatingRemainder(dividingBy: 1) != 0
+                                            let emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
+                                            
+                                            HStack(spacing: 2) {
+                                                ForEach(0..<fullStars, id: \.self) { _ in
+                                                    Image(systemName: "star.fill")
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                if hasHalfStar {
+                                                    Image(systemName: "star.leadinghalf.filled")
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                ForEach(0..<emptyStars, id: \.self) { _ in
+                                                    Image(systemName: "star")
+                                                        .foregroundColor(.secondary)
+                                                }
                                             }
-                                            if hasHalfStar {
-                                                Image(systemName: "star.leadinghalf.filled")
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            ForEach(0..<emptyStars, id: \.self) { _ in
-                                                Image(systemName: "star")
-                                                    .foregroundColor(.secondary)
-                                            }
+                                            .font(.subheadline)
+                                            
+                                            Text(votesCount > 0 ? "Based on \(votesCount) \(votesCount == 1 ? "vote" : "votes")" : "No ratings yet")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
                                         }
-                                        .font(.subheadline)
-                                        
-                                        Text(votesCount > 0 ? "Based on \(votesCount) \(votesCount == 1 ? "vote" : "votes")" : "No ratings yet")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity)
                                     }
-                                    .frame(maxWidth: .infinity)
                                 }
                                 
                                 // Listen Count
@@ -258,6 +263,27 @@ struct CollectionDetailView: View {
                     .padding(.top, UIApplication.shared.windows.first?.safeAreaInsets.top ?? 47)
                     Spacer()
                 }
+            }
+        }
+        .overlay {
+            if showingRatingPopup {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .overlay {
+                        if let releaseGroup = releaseGroup {
+                            RatingPopupView(
+                                isPresented: $showingRatingPopup,
+                                releaseGroupId: releaseGroup.id
+                            ) {
+                                // Reload the data after rating is submitted
+                                Task {
+                                    await reloadMusicBrainzData()
+                                    loadReleaseInformation()
+                                }
+                            }
+                            .padding()
+                        }
+                    }
             }
         }
         .refreshable {

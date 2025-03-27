@@ -175,6 +175,7 @@ struct CollectionDetailView: View {
                                         VStack {
                                             Text("Rating")
                                                 .font(.headline)
+                                                .foregroundColor(.primary)
                                             let value = rating.value ?? 0
                                             let roundedValue = round(value * 2) / 2 // Round to nearest 0.5
                                             let fullStars = Int(roundedValue)

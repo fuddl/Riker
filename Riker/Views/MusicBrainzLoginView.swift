@@ -40,7 +40,64 @@ struct WebView: UIViewRepresentable {
     
     func makeUIView(context: Context) -> WKWebView {
         print("WebView: Creating web view")
+        
+        let jsString = """
+            console.log('Injecting styles via JavaScript');
+            
+            // Function to apply styles to elements
+            function applyStyles() {
+                document.querySelector('[name="viewport"]').setAttribute('content', 'width=device-width, initial-scale=1, user-scalable=0') 
+
+                // Hide elements
+                document.querySelectorAll('.right, #footer').forEach(el => el.style.display = 'none');
+                
+                // Set body styles
+                document.body.style.minWidth = 'unset';
+                
+                // Set form label styles
+                document.querySelectorAll('form div.row label').forEach(el => {
+                    el.style.float = 'none';
+                    el.style.display = 'block';
+                    el.style.textAlign = 'left';
+                });
+                
+                // Set margin styles
+                document.querySelectorAll('div.form div.no-label, form div.no-label, form p.no-label, form ul.errors').forEach(el => {
+                    el.style.marginLeft = '0';
+                });
+                
+                // Set input styles
+                document.querySelectorAll('[type="text"], [type="password"]').forEach(el => {
+                    el.style.width = '100%';
+                    el.style.padding = '1em';
+                    el.style.margin = '.5em 0';
+                    el.style.webkitAppearance = 'none';
+                });
+                
+                console.log('Styles applied successfully');
+            }
+            
+            // Run on page load
+            applyStyles();
+           
+        """
+        
+        // Create user content controller
+        let userContentController = WKUserContentController()
+        
+        // Add JavaScript script
+        let jsScript = WKUserScript(
+            source: jsString,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        userContentController.addUserScript(jsScript)
+        
+        // Create configuration
         let configuration = WKWebViewConfiguration()
+        configuration.userContentController = userContentController
+        
+        // Create web view
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         self.webView = webView

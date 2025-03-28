@@ -274,7 +274,8 @@ struct CollectionDetailView: View {
                         if let releaseGroup = releaseGroup {
                             RatingPopupView(
                                 isPresented: $showingRatingPopup,
-                                releaseGroupId: releaseGroup.id
+                                releaseGroupId: releaseGroup.id,
+                                releaseGroupName: releaseGroup.title ?? "Unknown Album"
                             ) {
                                 // Reload the data after rating is submitted
                                 Task {

@@ -3,6 +3,7 @@ import SwiftUI
 struct RatingPopupView: View {
     @Binding var isPresented: Bool
     let releaseGroupId: String
+    let releaseGroupName: String
     let onRatingSubmitted: () -> Void
     @State private var selectedRating: Int = 0
     @State private var showingLoginView = false
@@ -10,39 +11,66 @@ struct RatingPopupView: View {
     @State private var showError = false
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Rate this album")
-                .font(.headline)
+        VStack(spacing: 16) {
+            VStack(spacing: 8) {
+                Text(releaseGroupName)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                
+                Text("Tap a star to rate this album on MusicBrainz.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.vertical, 20)
+            .padding(.horizontal, 24)
             
-            HStack(spacing: 10) {
+            Divider()
+                .padding(0)
+            
+            HStack() {
                 ForEach(1...5, id: \.self) { rating in
                     Image(systemName: rating <= selectedRating ? "star.fill" : "star")
-                        .foregroundColor(.yellow)
-                        .font(.title)
+                        .foregroundColor(rating <= selectedRating ? .accentColor : .gray.opacity(0.3))
+                        .font(.system(size: 25))
                         .onTapGesture {
-                            selectedRating = rating
+                            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                                selectedRating = rating
+                            }
                         }
                 }
             }
+            .padding(.vertical, 16)
             
-            HStack(spacing: 20) {
+            Divider()
+                .padding(0)
+            
+            HStack(spacing: 0) {
                 Button("Cancel") {
                     isPresented = false
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                
+                Divider()
+                    .frame(height: 50)
                 
                 Button("Submit") {
                     print("RatingPopupView: Submit button tapped")
                     submitRating()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.plain)
+                .foregroundColor(selectedRating > 0 ? .accentColor : .secondary)
                 .disabled(selectedRating == 0)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
             }
         }
-        .padding()
         .background(Color(UIColor.systemBackground))
-        .cornerRadius(15)
-        .shadow(radius: 10)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
         .sheet(isPresented: $showingLoginView) {
             MusicBrainzLoginView(isPresented: $showingLoginView) { session in
                 print("RatingPopupView: Login successful, got session")
